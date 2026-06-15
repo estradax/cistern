@@ -47,3 +47,56 @@ migrate -path db/migrations -database "mysql://root:secret@tcp(127.0.0.1:3306)/c
 migrate -path db/migrations -database "mysql://root:secret@tcp(127.0.0.1:3306)/cistern" force 1
 ```
 
+---
+
+## 2. CLI Usage (`cistern` command)
+
+The `cistern` CLI tool is used to perform CRUD operations on clients.
+
+### A. Build the CLI
+```bash
+go build -o cistern ./cmd/cistern
+```
+
+### B. CLI Commands
+- **Create**:
+  ```bash
+  ./cistern clients create '{"name": "Client Name"}'
+  ```
+- **Read** (supports raw ID or JSON):
+  ```bash
+  ./cistern clients read 'client-uuid-here'
+  # OR
+  ./cistern clients read '{"id": "client-uuid-here"}'
+  ```
+- **Update**:
+  ```bash
+  ./cistern clients update '{"id": "client-uuid-here", "name": "Updated Name"}'
+  ```
+- **Delete** (supports raw ID or JSON):
+  ```bash
+  ./cistern clients delete 'client-uuid-here'
+  ```
+
+---
+
+## 3. Go Library Usage (`internal/client`)
+
+To interact with clients programmatically in the Go code:
+
+```go
+import (
+	"context"
+	"github.com/estradax/cistern/internal/client"
+	"github.com/jmoiron/sqlx"
+)
+
+// Initialize the Repository with a database pool
+repo := client.NewRepository(db)
+
+// Create a client
+c, err := repo.Create(ctx, client.CreateClientInput{Name: "Acme Corp"})
+
+// Get a client by ID
+c, err := repo.Get(ctx, "client-uuid")
+```
