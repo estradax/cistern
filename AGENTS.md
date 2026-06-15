@@ -78,6 +78,21 @@ go build -o cistern ./cmd/cistern
   ./cistern clients delete 'client-uuid-here'
   ```
 
+- **Generate API Key**:
+  ```bash
+  ./cistern apikeys generate '{"client_id": "client-uuid-here", "name": "Key Name"}'
+  ```
+- **Read API Key** (supports raw ID or JSON):
+  ```bash
+  ./cistern apikeys read 'apikey-uuid-here'
+  # OR
+  ./cistern apikeys read '{"id": "apikey-uuid-here"}'
+  ```
+- **Delete API Key** (supports raw ID or JSON):
+  ```bash
+  ./cistern apikeys delete 'apikey-uuid-here'
+  ```
+
 ---
 
 ## 3. Go Library Usage (`internal/client`)
@@ -99,4 +114,27 @@ c, err := repo.Create(ctx, client.CreateClientInput{Name: "Acme Corp"})
 
 // Get a client by ID
 c, err := repo.Get(ctx, "client-uuid")
+```
+
+---
+
+## 4. Go Library Usage (`internal/apikey`)
+
+To interact with API keys programmatically in the Go code:
+
+```go
+import (
+	"context"
+	"github.com/estradax/cistern/internal/apikey"
+	"github.com/jmoiron/sqlx"
+)
+
+// Initialize the Repository with a database pool
+repo := apikey.NewRepository(db)
+
+// Generate an API key
+res, err := repo.Create(ctx, apikey.CreateAPIKeyInput{ClientID: "client-uuid", Name: &keyName})
+
+// Get an API key by ID
+key, err := repo.Get(ctx, "apikey-uuid")
 ```
