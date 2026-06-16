@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/estradax/cistern/internal/apikey"
+	"github.com/estradax/cistern/internal/bucket"
 	"github.com/estradax/cistern/internal/client"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
@@ -25,7 +26,7 @@ func main() {
 	action := os.Args[2]
 	payload := os.Args[3]
 
-	if sub != "clients" && sub != "apikeys" {
+	if sub != "clients" && sub != "apikeys" && sub != "buckets" {
 		printUsageAndExit()
 	}
 
@@ -148,6 +149,63 @@ func main() {
 		default:
 			printUsageAndExit()
 		}
+	case "buckets":
+		repo := bucket.NewRepository(db)
+		switch action {
+		case "create":
+			var input bucket.CreateBucketInput
+			if err := json.Unmarshal([]byte(payload), &input); err != nil {
+				log.Fatalf("Invalid JSON payload for create: %v", err)
+			}
+
+			b, err := repo.Create(ctx, input)
+			if err != nil {
+				log.Fatalf("Failed to create bucket: %v", err)
+			}
+			printJSON(b)
+
+		case "read":
+			id := extractID(payload)
+			if id == "" {
+				log.Fatal("Bucket ID cannot be empty")
+			}
+
+			b, err := repo.Get(ctx, id)
+			if err != nil {
+				log.Fatalf("Failed to retrieve bucket: %v", err)
+			}
+			if b == nil {
+				log.Fatalf("Bucket not found: %s", id)
+			}
+			printJSON(b)
+
+		case "edit", "update":
+			var input bucket.UpdateBucketInput
+			if err := json.Unmarshal([]byte(payload), &input); err != nil {
+				log.Fatalf("Invalid JSON payload for update: %v", err)
+			}
+
+			b, err := repo.Update(ctx, input)
+			if err != nil {
+				log.Fatalf("Failed to update bucket: %v", err)
+			}
+			printJSON(b)
+
+		case "delete":
+			id := extractID(payload)
+			if id == "" {
+				log.Fatal("Bucket ID cannot be empty")
+			}
+
+			err := repo.Delete(ctx, id)
+			if err != nil {
+				log.Fatalf("Failed to delete bucket: %v", err)
+			}
+			fmt.Printf(`{"status":"success","deleted_id":%q}`+"\n", id)
+
+		default:
+			printUsageAndExit()
+		}
 	}
 }
 
@@ -160,6 +218,11 @@ func printUsageAndExit() {
 	fmt.Println("  cistern apikeys generate '<json_payload>' (e.g., '{\"client_id\": \"client-uuid\", \"name\": \"my-key\"}')")
 	fmt.Println("  cistern apikeys read '<id_or_json>'       (e.g., 'some-uuid-here' or '{\"id\": \"some-uuid\"}')")
 	fmt.Println("  cistern apikeys delete '<id_or_json>'     (e.g., 'some-uuid-here' or '{\"id\": \"some-uuid\"}')")
+	fmt.Println("  cistern buckets create '<json_payload>'   (e.g., '{\"bucket_key\": \"my-bucket\", \"owner_id\": \"client-uuid\"}')")
+	fmt.Println("  cistern buckets read '<id_or_json>'       (e.g., 'some-uuid-here' or '{\"id\": \"some-uuid\"}')")
+	fmt.Println("  cistern buckets edit '<json_payload>'     (e.g., '{\"id\": \"uuid\", \"bucket_key\": \"new-key\", \"owner_id\": \"client-uuid\"}')")
+	fmt.Println("  cistern buckets update '<json_payload>'   (e.g., '{\"id\": \"uuid\", \"bucket_key\": \"new-key\", \"owner_id\": \"client-uuid\"}')")
+	fmt.Println("  cistern buckets delete '<id_or_json>'     (e.g., 'some-uuid-here' or '{\"id\": \"some-uuid\"}')")
 	os.Exit(1)
 }
 

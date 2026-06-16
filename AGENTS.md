@@ -93,6 +93,27 @@ go build -o cistern ./cmd/cistern
   ./cistern apikeys delete 'apikey-uuid-here'
   ```
 
+- **Create Bucket**:
+  ```bash
+  ./cistern buckets create '{"bucket_key": "my-bucket", "owner_id": "client-uuid-here"}'
+  ```
+- **Read Bucket** (supports raw ID or JSON):
+  ```bash
+  ./cistern buckets read 'bucket-uuid-here'
+  # OR
+  ./cistern buckets read '{"id": "bucket-uuid-here"}'
+  ```
+- **Edit / Update Bucket**:
+  ```bash
+  ./cistern buckets update '{"id": "bucket-uuid-here", "bucket_key": "updated-bucket-key", "owner_id": "client-uuid-here"}'
+  # OR
+  ./cistern buckets edit '{"id": "bucket-uuid-here", "bucket_key": "updated-bucket-key", "owner_id": "client-uuid-here"}'
+  ```
+- **Delete Bucket** (supports raw ID or JSON):
+  ```bash
+  ./cistern buckets delete 'bucket-uuid-here'
+  ```
+
 ---
 
 ## 3. Go Library Usage (`internal/client`)
@@ -137,4 +158,27 @@ res, err := repo.Create(ctx, apikey.CreateAPIKeyInput{ClientID: "client-uuid", N
 
 // Get an API key by ID
 key, err := repo.Get(ctx, "apikey-uuid")
+```
+
+---
+
+## 5. Go Library Usage (`internal/bucket`)
+
+To interact with buckets programmatically in the Go code:
+
+```go
+import (
+	"context"
+	"github.com/estradax/cistern/internal/bucket"
+	"github.com/jmoiron/sqlx"
+)
+
+// Initialize the Repository with a database pool
+repo := bucket.NewRepository(db)
+
+// Create a bucket
+b, err := repo.Create(ctx, bucket.CreateBucketInput{BucketKey: "my-bucket", OwnerID: "client-uuid"})
+
+// Get a bucket by ID
+b, err := repo.Get(ctx, "bucket-uuid")
 ```
