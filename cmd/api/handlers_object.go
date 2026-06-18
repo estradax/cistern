@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"path/filepath"
 
 	_ "github.com/estradax/cistern/internal/object"
@@ -87,7 +88,10 @@ func (s *Server) UploadObject(c fiber.Ctx) error {
 // @Security SecretKey
 // @Router /objects/{key}/metadata [get]
 func (s *Server) GetObjectMetadata(c fiber.Ctx) error {
-	key := c.Params("*")
+	key, err := url.PathUnescape(c.Params("*"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "invalid object key encoding: " + err.Error()})
+	}
 	if key == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing object key"})
 	}
@@ -131,7 +135,10 @@ func (s *Server) GetObjectMetadata(c fiber.Ctx) error {
 // @Security SecretKey
 // @Router /objects/{key} [get]
 func (s *Server) GetObjectContent(c fiber.Ctx) error {
-	key := c.Params("*")
+	key, err := url.PathUnescape(c.Params("*"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "invalid object key encoding: " + err.Error()})
+	}
 	if key == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing object key"})
 	}
@@ -185,7 +192,10 @@ func (s *Server) GetObjectContent(c fiber.Ctx) error {
 // @Security SecretKey
 // @Router /objects/{key} [delete]
 func (s *Server) DeleteObject(c fiber.Ctx) error {
-	key := c.Params("*")
+	key, err := url.PathUnescape(c.Params("*"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "invalid object key encoding: " + err.Error()})
+	}
 	if key == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing object key"})
 	}

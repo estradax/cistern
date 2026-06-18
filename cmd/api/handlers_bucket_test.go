@@ -7,6 +7,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -298,6 +299,74 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 	resp = sendReqA("GET", "/api/v1/objects/"+obj.ObjectKey+"/metadata", nil, "")
 	if resp.StatusCode != http.StatusNotFound {
 		t.Errorf("Expected status 404 for deleted object metadata, got %d", resp.StatusCode)
+	}
+
+	// 18b. Test Upload Object with a slash in the key (Client A)
+	bodyBuf2 := &bytes.Buffer{}
+	mw2 := multipart.NewWriter(bodyBuf2)
+	part2, err := mw2.CreateFormFile("file", "image.webp")
+	if err != nil {
+		t.Fatalf("Failed to create form file: %v", err)
+	}
+	if _, err := part2.Write([]byte("fake webp content")); err != nil {
+		t.Fatalf("Failed to write to file part: %v", err)
+	}
+	if err := mw2.WriteField("key", "gambar/customobjectkey.webpRmNP0"); err != nil {
+		t.Fatalf("Failed to write form field key: %v", err)
+	}
+	mw2.Close()
+
+	resp = sendReqA("POST", "/api/v1/buckets/my-updated-bucket/objects", bytes.NewReader(bodyBuf2.Bytes()), mw2.FormDataContentType())
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status 201 for object with slash key, got %d", resp.StatusCode)
+	}
+
+	var objEscaped object.Object
+	if err := json.NewDecoder(resp.Body).Decode(&objEscaped); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+	if !strings.HasPrefix(objEscaped.ObjectKey, "gambar/customobjectkey.webpRmNP0") {
+		t.Errorf("Expected prefix 'gambar/customobjectkey.webpRmNP0', got %q", objEscaped.ObjectKey)
+	}
+
+	escapedKeyPath := url.PathEscape(objEscaped.ObjectKey)
+
+	// 18c. Test GET object metadata using URL-encoded key (Client A)
+	resp = sendReqA("GET", "/api/v1/objects/"+escapedKeyPath+"/metadata", nil, "")
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200 for URL-encoded metadata get, got %d", resp.StatusCode)
+	}
+	var objGetEscaped object.Object
+	if err := json.NewDecoder(resp.Body).Decode(&objGetEscaped); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+	if objGetEscaped.ID != objEscaped.ID {
+		t.Errorf("Mismatch in retrieved object metadata for URL-encoded key: expected ID %s, got %s", objEscaped.ID, objGetEscaped.ID)
+	}
+
+	// 18d. Test GET object content using URL-encoded key (Client A)
+	resp = sendReqA("GET", "/api/v1/objects/"+escapedKeyPath, nil, "")
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200 for URL-encoded content get, got %d", resp.StatusCode)
+	}
+	dlContentEscaped, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("Failed to read download content: %v", err)
+	}
+	if string(dlContentEscaped) != "fake webp content" {
+		t.Errorf("Expected downloaded content 'fake webp content', got %q", string(dlContentEscaped))
+	}
+
+	// 18e. Test DELETE object using URL-encoded key (Client A)
+	resp = sendReqA("DELETE", "/api/v1/objects/"+escapedKeyPath, nil, "")
+	if resp.StatusCode != http.StatusNoContent {
+		t.Errorf("Expected status 204 for URL-encoded delete, got %d", resp.StatusCode)
+	}
+
+	// Verify delete of URL-encoded object
+	resp = sendReqA("GET", "/api/v1/objects/"+escapedKeyPath+"/metadata", nil, "")
+	if resp.StatusCode != http.StatusNotFound {
+		t.Errorf("Expected status 404 for deleted URL-encoded object metadata, got %d", resp.StatusCode)
 	}
 
 	// 19. Test Tenant Isolation: Client B tries to DELETE Client A's bucket
