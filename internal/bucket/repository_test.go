@@ -138,6 +138,19 @@ func TestBucketRepository_GetAndUpdate(t *testing.T) {
 		}
 	})
 
+	t.Run("get bucket by Key", func(t *testing.T) {
+		fetched, err := bucketRepo.GetByKey(ctx, b.BucketKey)
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if fetched == nil {
+			t.Fatal("expected bucket, got nil")
+		}
+		if fetched.ID != b.ID {
+			t.Errorf("expected bucket ID %q, got %q", b.ID, fetched.ID)
+		}
+	})
+
 	t.Run("update bucket", func(t *testing.T) {
 		updated, err := bucketRepo.Update(ctx, bucket.UpdateBucketInput{
 			ID:        b.ID,

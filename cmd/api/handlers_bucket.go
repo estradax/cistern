@@ -30,21 +30,21 @@ func (s *Server) CreateBucket(c fiber.Ctx) error {
 }
 
 // @Summary Get a bucket
-// @Description Get a bucket by its unique ID
+// @Description Get a bucket by its unique key
 // @Tags buckets
 // @Produce json
-// @Param id path string true "Bucket ID"
+// @Param bucket_key path string true "Bucket Key"
 // @Success 200 {object} bucket.Bucket
 // @Failure 404 {object} APIError
 // @Failure 500 {object} APIError
-// @Router /buckets/{id} [get]
+// @Router /buckets/{bucket_key} [get]
 func (s *Server) GetBucket(c fiber.Ctx) error {
-	id := c.Params("id")
-	if id == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing bucket ID"})
+	bucketKey := c.Params("bucket_key")
+	if bucketKey == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing bucket key"})
 	}
 
-	b, err := s.bucketRepo.Get(c.Context(), id)
+	b, err := s.bucketRepo.GetByKey(c.Context(), bucketKey)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(APIError{Error: err.Error()})
 	}
@@ -56,21 +56,21 @@ func (s *Server) GetBucket(c fiber.Ctx) error {
 }
 
 // @Summary Update a bucket
-// @Description Update a bucket's key and/or owner ID by its unique ID
+// @Description Update a bucket's key and/or owner ID by its unique key
 // @Tags buckets
 // @Accept json
 // @Produce json
-// @Param id path string true "Bucket ID"
+// @Param bucket_key path string true "Bucket Key"
 // @Param body body bucket.CreateBucketInput true "Update bucket payload"
 // @Success 200 {object} bucket.Bucket
 // @Failure 400 {object} APIError
 // @Failure 404 {object} APIError
 // @Failure 500 {object} APIError
-// @Router /buckets/{id} [put]
+// @Router /buckets/{bucket_key} [put]
 func (s *Server) UpdateBucket(c fiber.Ctx) error {
-	id := c.Params("id")
-	if id == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing bucket ID"})
+	bucketKey := c.Params("bucket_key")
+	if bucketKey == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing bucket key"})
 	}
 
 	var input bucket.CreateBucketInput
@@ -78,36 +78,52 @@ func (s *Server) UpdateBucket(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "invalid request body: " + err.Error()})
 	}
 
+	b, err := s.bucketRepo.GetByKey(c.Context(), bucketKey)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(APIError{Error: err.Error()})
+	}
+	if b == nil {
+		return c.Status(fiber.StatusNotFound).JSON(APIError{Error: "bucket not found"})
+	}
+
 	updateInput := bucket.UpdateBucketInput{
-		ID:        id,
+		ID:        b.ID,
 		BucketKey: input.BucketKey,
 		OwnerID:   input.OwnerID,
 	}
 
-	b, err := s.bucketRepo.Update(c.Context(), updateInput)
+	updatedBucket, err := s.bucketRepo.Update(c.Context(), updateInput)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: err.Error()})
 	}
 
-	return c.JSON(b)
+	return c.JSON(updatedBucket)
 }
 
 // @Summary Delete a bucket
-// @Description Delete a bucket by its unique ID
+// @Description Delete a bucket by its unique key
 // @Tags buckets
 // @Produce json
-// @Param id path string true "Bucket ID"
+// @Param bucket_key path string true "Bucket Key"
 // @Success 204 "No Content"
 // @Failure 400 {object} APIError
 // @Failure 500 {object} APIError
-// @Router /buckets/{id} [delete]
+// @Router /buckets/{bucket_key} [delete]
 func (s *Server) DeleteBucket(c fiber.Ctx) error {
-	id := c.Params("id")
-	if id == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing bucket ID"})
+	bucketKey := c.Params("bucket_key")
+	if bucketKey == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing bucket key"})
 	}
 
-	if err := s.bucketRepo.Delete(c.Context(), id); err != nil {
+	b, err := s.bucketRepo.GetByKey(c.Context(), bucketKey)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(APIError{Error: err.Error()})
+	}
+	if b == nil {
+		return c.Status(fiber.StatusNotFound).JSON(APIError{Error: "bucket not found"})
+	}
+
+	if err := s.bucketRepo.Delete(c.Context(), b.ID); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(APIError{Error: err.Error()})
 	}
 

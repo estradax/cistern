@@ -178,114 +178,9 @@
                 }
             }
         },
-        "/buckets/{bucket_id}/objects": {
+        "/buckets/{bucket_key}": {
             "get": {
-                "description": "Get a list of all objects inside the specified bucket",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "objects"
-                ],
-                "summary": "List objects in a bucket",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bucket ID",
-                        "name": "bucket_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/object.Object"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/main.APIError"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/main.APIError"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Upload a file to a specific bucket. The bucket ID is passed in the URL path. The file should be sent as multipart/form-data. An optional object key and content-type can be supplied.",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "objects"
-                ],
-                "summary": "Upload an object",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bucket ID",
-                        "name": "bucket_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "file",
-                        "description": "File to upload",
-                        "name": "file",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Object Key (if omitted, defaults to the filename)",
-                        "name": "key",
-                        "in": "formData"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Content-Type (if omitted, defaults to file mime-type)",
-                        "name": "content_type",
-                        "in": "formData"
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/object.Object"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/main.APIError"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/main.APIError"
-                        }
-                    }
-                }
-            }
-        },
-        "/buckets/{id}": {
-            "get": {
-                "description": "Get a bucket by its unique ID",
+                "description": "Get a bucket by its unique key",
                 "produces": [
                     "application/json"
                 ],
@@ -296,8 +191,8 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Bucket ID",
-                        "name": "id",
+                        "description": "Bucket Key",
+                        "name": "bucket_key",
                         "in": "path",
                         "required": true
                     }
@@ -324,7 +219,7 @@
                 }
             },
             "put": {
-                "description": "Update a bucket's key and/or owner ID by its unique ID",
+                "description": "Update a bucket's key and/or owner ID by its unique key",
                 "consumes": [
                     "application/json"
                 ],
@@ -338,8 +233,8 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Bucket ID",
-                        "name": "id",
+                        "description": "Bucket Key",
+                        "name": "bucket_key",
                         "in": "path",
                         "required": true
                     },
@@ -381,7 +276,7 @@
                 }
             },
             "delete": {
-                "description": "Delete a bucket by its unique ID",
+                "description": "Delete a bucket by its unique key",
                 "produces": [
                     "application/json"
                 ],
@@ -392,8 +287,8 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Bucket ID",
-                        "name": "id",
+                        "description": "Bucket Key",
+                        "name": "bucket_key",
                         "in": "path",
                         "required": true
                     }
@@ -401,6 +296,111 @@
                 "responses": {
                     "204": {
                         "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/main.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/main.APIError"
+                        }
+                    }
+                }
+            }
+        },
+        "/buckets/{bucket_key}/objects": {
+            "get": {
+                "description": "Get a list of all objects inside the specified bucket",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "objects"
+                ],
+                "summary": "List objects in a bucket",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bucket Key",
+                        "name": "bucket_key",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/object.Object"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/main.APIError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/main.APIError"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Upload a file to a specific bucket. The bucket key is passed in the URL path. The file should be sent as multipart/form-data. An optional object key and content-type can be supplied.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "objects"
+                ],
+                "summary": "Upload an object",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bucket Key",
+                        "name": "bucket_key",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "File to upload",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Object Key (if omitted, defaults to the filename)",
+                        "name": "key",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Content-Type (if omitted, defaults to file mime-type)",
+                        "name": "content_type",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/object.Object"
+                        }
                     },
                     "400": {
                         "description": "Bad Request",

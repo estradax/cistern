@@ -67,6 +67,18 @@ func (r *Repository) Get(ctx context.Context, id string) (*Bucket, error) {
 	return &bucket, nil
 }
 
+func (r *Repository) GetByKey(ctx context.Context, key string) (*Bucket, error) {
+	var bucket Bucket
+	err := r.db.GetContext(ctx, &bucket, "SELECT id, bucket_key, owner_id, created_at, updated_at FROM buckets WHERE bucket_key = ?", key)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &bucket, nil
+}
+
 func (r *Repository) Update(ctx context.Context, input UpdateBucketInput) (*Bucket, error) {
 	if input.ID == "" {
 		return nil, errors.New("bucket ID cannot be empty")

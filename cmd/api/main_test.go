@@ -63,12 +63,12 @@ func setupTestApp(t *testing.T) *TestEnv {
 	api.Delete("/apikeys/:id", server.DeleteAPIKey)
 
 	api.Post("/buckets", server.CreateBucket)
-	api.Get("/buckets/:id", server.GetBucket)
-	api.Put("/buckets/:id", server.UpdateBucket)
-	api.Delete("/buckets/:id", server.DeleteBucket)
+	api.Get("/buckets/:bucket_key", server.GetBucket)
+	api.Put("/buckets/:bucket_key", server.UpdateBucket)
+	api.Delete("/buckets/:bucket_key", server.DeleteBucket)
 
-	api.Post("/buckets/:bucket_id/objects", server.UploadObject)
-	api.Get("/buckets/:bucket_id/objects", server.ListObjects)
+	api.Post("/buckets/:bucket_key/objects", server.UploadObject)
+	api.Get("/buckets/:bucket_key/objects", server.ListObjects)
 
 	api.Get("/objects/:id", server.GetObject)
 	api.Get("/objects/:id/download", server.DownloadObject)

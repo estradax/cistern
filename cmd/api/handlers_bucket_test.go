@@ -46,8 +46,25 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		t.Errorf("Mismatch in created bucket: %+v", b)
 	}
 
+	// Test GET bucket by key
+	req = httptest.NewRequest("GET", "/api/v1/buckets/"+b.BucketKey, nil)
+	resp, err = env.App.Test(req)
+	if err != nil {
+		t.Fatalf("Failed to perform request: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", resp.StatusCode)
+	}
+	var bGet bucket.Bucket
+	if err := json.NewDecoder(resp.Body).Decode(&bGet); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+	if bGet.ID != b.ID {
+		t.Errorf("Mismatch in retrieved bucket ID: expected %s, got %s", b.ID, bGet.ID)
+	}
+
 	updatePayload := `{"bucket_key":"my-updated-bucket","owner_id":"` + cli.ID + `"}`
-	req = httptest.NewRequest("PUT", "/api/v1/buckets/"+b.ID, bytes.NewBufferString(updatePayload))
+	req = httptest.NewRequest("PUT", "/api/v1/buckets/"+b.BucketKey, bytes.NewBufferString(updatePayload))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err = env.App.Test(req)
 	if err != nil {
@@ -79,7 +96,7 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 	}
 	mw.Close()
 
-	req = httptest.NewRequest("POST", "/api/v1/buckets/"+b.ID+"/objects", bodyBuf)
+	req = httptest.NewRequest("POST", "/api/v1/buckets/my-updated-bucket/objects", bodyBuf)
 	req.Header.Set("Content-Type", mw.FormDataContentType())
 	resp, err = env.App.Test(req)
 	if err != nil {
@@ -114,7 +131,7 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		t.Errorf("Mismatch in retrieved object metadata: %+v", objGet)
 	}
 
-	req = httptest.NewRequest("GET", "/api/v1/buckets/"+b.ID+"/objects", nil)
+	req = httptest.NewRequest("GET", "/api/v1/buckets/my-updated-bucket/objects", nil)
 	resp, err = env.App.Test(req)
 	if err != nil {
 		t.Fatalf("Failed to perform request: %v", err)
@@ -163,5 +180,25 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 	}
 	if resp.StatusCode != http.StatusNotFound {
 		t.Errorf("Expected status 404 for deleted object metadata, got %d", resp.StatusCode)
+	}
+
+	// Test DELETE bucket by key
+	req = httptest.NewRequest("DELETE", "/api/v1/buckets/my-updated-bucket", nil)
+	resp, err = env.App.Test(req)
+	if err != nil {
+		t.Fatalf("Failed to perform request: %v", err)
+	}
+	if resp.StatusCode != http.StatusNoContent {
+		t.Errorf("Expected status 204 on delete, got %d", resp.StatusCode)
+	}
+
+	// Verify delete
+	req = httptest.NewRequest("GET", "/api/v1/buckets/my-updated-bucket", nil)
+	resp, err = env.App.Test(req)
+	if err != nil {
+		t.Fatalf("Failed to perform request: %v", err)
+	}
+	if resp.StatusCode != http.StatusNotFound {
+		t.Errorf("Expected status 404 for deleted bucket, got %d", resp.StatusCode)
 	}
 }

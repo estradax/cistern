@@ -9,22 +9,30 @@ import (
 )
 
 // @Summary Upload an object
-// @Description Upload a file to a specific bucket. The bucket ID is passed in the URL path. The file should be sent as multipart/form-data. An optional object key and content-type can be supplied.
+// @Description Upload a file to a specific bucket. The bucket key is passed in the URL path. The file should be sent as multipart/form-data. An optional object key and content-type can be supplied.
 // @Tags objects
 // @Accept multipart/form-data
 // @Produce json
-// @Param bucket_id path string true "Bucket ID"
+// @Param bucket_key path string true "Bucket Key"
 // @Param file formData file true "File to upload"
 // @Param key formData string false "Object Key (if omitted, defaults to the filename)"
 // @Param content_type formData string false "Content-Type (if omitted, defaults to file mime-type)"
 // @Success 201 {object} object.Object
 // @Failure 400 {object} APIError
 // @Failure 500 {object} APIError
-// @Router /buckets/{bucket_id}/objects [post]
+// @Router /buckets/{bucket_key}/objects [post]
 func (s *Server) UploadObject(c fiber.Ctx) error {
-	bucketID := c.Params("bucket_id")
-	if bucketID == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing bucket ID"})
+	bucketKey := c.Params("bucket_key")
+	if bucketKey == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing bucket key"})
+	}
+
+	b, err := s.bucketRepo.GetByKey(c.Context(), bucketKey)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(APIError{Error: err.Error()})
+	}
+	if b == nil {
+		return c.Status(fiber.StatusNotFound).JSON(APIError{Error: "bucket not found"})
 	}
 
 	file, err := c.FormFile("file")
@@ -48,7 +56,7 @@ func (s *Server) UploadObject(c fiber.Ctx) error {
 	}
 	defer src.Close()
 
-	obj, err := s.objService.Upload(c.Context(), bucketID, key, contentType, src)
+	obj, err := s.objService.Upload(c.Context(), b.ID, key, contentType, src)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: err.Error()})
 	}
@@ -137,18 +145,26 @@ func (s *Server) DeleteObject(c fiber.Ctx) error {
 // @Description Get a list of all objects inside the specified bucket
 // @Tags objects
 // @Produce json
-// @Param bucket_id path string true "Bucket ID"
+// @Param bucket_key path string true "Bucket Key"
 // @Success 200 {array} object.Object
 // @Failure 400 {object} APIError
 // @Failure 500 {object} APIError
-// @Router /buckets/{bucket_id}/objects [get]
+// @Router /buckets/{bucket_key}/objects [get]
 func (s *Server) ListObjects(c fiber.Ctx) error {
-	bucketID := c.Params("bucket_id")
-	if bucketID == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing bucket ID"})
+	bucketKey := c.Params("bucket_key")
+	if bucketKey == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing bucket key"})
 	}
 
-	list, err := s.objService.ListByBucket(c.Context(), bucketID)
+	b, err := s.bucketRepo.GetByKey(c.Context(), bucketKey)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(APIError{Error: err.Error()})
+	}
+	if b == nil {
+		return c.Status(fiber.StatusNotFound).JSON(APIError{Error: "bucket not found"})
+	}
+
+	list, err := s.objService.ListByBucket(c.Context(), b.ID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(APIError{Error: err.Error()})
 	}

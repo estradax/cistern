@@ -209,13 +209,102 @@ paths:
       summary: Create a bucket
       tags:
       - buckets
-  /buckets/{bucket_id}/objects:
+  /buckets/{bucket_key}:
+    delete:
+      description: Delete a bucket by its unique key
+      parameters:
+      - description: Bucket Key
+        in: path
+        name: bucket_key
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.APIError'
+      summary: Delete a bucket
+      tags:
+      - buckets
+    get:
+      description: Get a bucket by its unique key
+      parameters:
+      - description: Bucket Key
+        in: path
+        name: bucket_key
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/bucket.Bucket'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.APIError'
+      summary: Get a bucket
+      tags:
+      - buckets
+    put:
+      consumes:
+      - application/json
+      description: Update a bucket's key and/or owner ID by its unique key
+      parameters:
+      - description: Bucket Key
+        in: path
+        name: bucket_key
+        required: true
+        type: string
+      - description: Update bucket payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/bucket.CreateBucketInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/bucket.Bucket'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.APIError'
+      summary: Update a bucket
+      tags:
+      - buckets
+  /buckets/{bucket_key}/objects:
     get:
       description: Get a list of all objects inside the specified bucket
       parameters:
-      - description: Bucket ID
+      - description: Bucket Key
         in: path
-        name: bucket_id
+        name: bucket_key
         required: true
         type: string
       produces:
@@ -241,13 +330,13 @@ paths:
     post:
       consumes:
       - multipart/form-data
-      description: Upload a file to a specific bucket. The bucket ID is passed in
+      description: Upload a file to a specific bucket. The bucket key is passed in
         the URL path. The file should be sent as multipart/form-data. An optional
         object key and content-type can be supplied.
       parameters:
-      - description: Bucket ID
+      - description: Bucket Key
         in: path
-        name: bucket_id
+        name: bucket_key
         required: true
         type: string
       - description: File to upload
@@ -281,95 +370,6 @@ paths:
       summary: Upload an object
       tags:
       - objects
-  /buckets/{id}:
-    delete:
-      description: Delete a bucket by its unique ID
-      parameters:
-      - description: Bucket ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: No Content
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/main.APIError'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/main.APIError'
-      summary: Delete a bucket
-      tags:
-      - buckets
-    get:
-      description: Get a bucket by its unique ID
-      parameters:
-      - description: Bucket ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/bucket.Bucket'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/main.APIError'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/main.APIError'
-      summary: Get a bucket
-      tags:
-      - buckets
-    put:
-      consumes:
-      - application/json
-      description: Update a bucket's key and/or owner ID by its unique ID
-      parameters:
-      - description: Bucket ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Update bucket payload
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/bucket.CreateBucketInput'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/bucket.Bucket'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/main.APIError'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/main.APIError'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/main.APIError'
-      summary: Update a bucket
-      tags:
-      - buckets
   /clients:
     post:
       consumes:
