@@ -573,4 +573,7 @@ paths:
       summary: Get object metadata
       tags:
       - objects
+schemes:
+- http
+- https
 swagger: "2.0"

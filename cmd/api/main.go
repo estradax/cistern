@@ -3,6 +3,7 @@
 // @description API Server for Cistern Object Storage
 // @host localhost:3000
 // @BasePath /api/v1
+// @schemes http https
 package main
 
 import (
@@ -12,6 +13,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gofiber/contrib/v3/swaggerui"
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
 
@@ -54,6 +56,8 @@ func main() {
 
 	server := NewServer(clientRepo, apiKeyRepo, bucketRepo, objService)
 	app := fiber.New()
+
+	app.Use(cors.New())
 
 	swaggerCfg := swaggerui.Config{
 		FilePath: "./docs/swagger.json",

@@ -878,7 +878,7 @@ var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "localhost:3000",
 	BasePath:         "/api/v1",
-	Schemes:          []string{},
+	Schemes:          []string{"http", "https"},
 	Title:            "Cistern API",
 	Description:      "API Server for Cistern Object Storage",
 	InfoInstanceName: "swagger",
