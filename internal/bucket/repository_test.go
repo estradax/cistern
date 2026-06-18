@@ -67,7 +67,6 @@ func TestBucketRepository_Create(t *testing.T) {
 			t.Error("expected error for empty owner ID, got nil")
 		}
 
-		// Test invalid bucket keys
 		invalidKeys := []string{
 			"my bucket",
 			"my_bucket",

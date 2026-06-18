@@ -42,7 +42,7 @@ func (r *Repository) Create(ctx context.Context, input CreateAPIKeyInput) (*Crea
 
 	query := `INSERT INTO api_keys (id, client_id, name, access_key, secret_key_hash, created_at, updated_at) 
 	          VALUES (:id, :client_id, :name, :access_key, :secret_key_hash, :created_at, :updated_at)`
-	
+
 	_, err = r.db.NamedExecContext(ctx, query, apiKey)
 	if err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ func (r *Repository) Get(ctx context.Context, id string) (*APIKey, error) {
 	var apiKey APIKey
 	query := `SELECT id, client_id, name, access_key, secret_key_hash, created_at, updated_at 
 	          FROM api_keys WHERE id = ?`
-	
+
 	err := r.db.GetContext(ctx, &apiKey, query, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -82,7 +82,7 @@ func (r *Repository) GetByAccessKey(ctx context.Context, accessKey string) (*API
 	var apiKey APIKey
 	query := `SELECT id, client_id, name, access_key, secret_key_hash, created_at, updated_at 
 	          FROM api_keys WHERE access_key = ?`
-	
+
 	err := r.db.GetContext(ctx, &apiKey, query, accessKey)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -102,7 +102,7 @@ func (r *Repository) ListByClient(ctx context.Context, clientID string) ([]*APIK
 	var keys []*APIKey
 	query := `SELECT id, client_id, name, access_key, secret_key_hash, created_at, updated_at 
 	          FROM api_keys WHERE client_id = ? ORDER BY created_at DESC`
-	
+
 	err := r.db.SelectContext(ctx, &keys, query, clientID)
 	if err != nil {
 		return nil, err
