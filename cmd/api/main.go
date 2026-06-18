@@ -81,8 +81,8 @@ func main() {
 	api.Post("/buckets/:bucket_key/objects", server.UploadObject)
 	api.Get("/buckets/:bucket_key/objects", server.ListObjects)
 
-	api.Get("/objects/*/download", server.DownloadObject)
-	api.Get("/objects/*", server.GetObject)
+	api.Get("/objects/*/metadata", server.GetObjectMetadata)
+	api.Get("/objects/*", server.GetObjectContent)
 	api.Delete("/objects/*", server.DeleteObject)
 
 	app.Use(func(c fiber.Ctx) error {

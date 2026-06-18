@@ -70,8 +70,8 @@ func setupTestApp(t *testing.T) *TestEnv {
 	api.Post("/buckets/:bucket_key/objects", server.UploadObject)
 	api.Get("/buckets/:bucket_key/objects", server.ListObjects)
 
-	api.Get("/objects/*/download", server.DownloadObject)
-	api.Get("/objects/*", server.GetObject)
+	api.Get("/objects/*/metadata", server.GetObjectMetadata)
+	api.Get("/objects/*", server.GetObjectContent)
 	api.Delete("/objects/*", server.DeleteObject)
 
 	teardown := func() {

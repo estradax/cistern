@@ -72,8 +72,8 @@ func (s *Server) UploadObject(c fiber.Ctx) error {
 // @Success 200 {object} object.Object
 // @Failure 404 {object} APIError
 // @Failure 500 {object} APIError
-// @Router /objects/{key} [get]
-func (s *Server) GetObject(c fiber.Ctx) error {
+// @Router /objects/{key}/metadata [get]
+func (s *Server) GetObjectMetadata(c fiber.Ctx) error {
 	key := c.Params("*")
 	if key == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing object key"})
@@ -90,16 +90,17 @@ func (s *Server) GetObject(c fiber.Ctx) error {
 	return c.JSON(obj)
 }
 
-// @Summary Download object content
-// @Description Download the raw payload of an object by its unique object key
+// @Summary Get object content (Download/Stream)
+// @Description Retrieve the raw payload of an object by its unique object key. Supports content disposition customization via query parameters.
 // @Tags objects
 // @Produce octet-stream
 // @Param key path string true "Object Key"
+// @Param contentDisposition query string false "Content disposition type: inline (default) or attachment"
 // @Success 200 {file} file
 // @Failure 404 {object} APIError
 // @Failure 500 {object} APIError
-// @Router /objects/{key}/download [get]
-func (s *Server) DownloadObject(c fiber.Ctx) error {
+// @Router /objects/{key} [get]
+func (s *Server) GetObjectContent(c fiber.Ctx) error {
 	key := c.Params("*")
 	if key == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing object key"})
@@ -114,7 +115,12 @@ func (s *Server) DownloadObject(c fiber.Ctx) error {
 	if obj.Size > 0 {
 		c.Set(fiber.HeaderContentLength, fmt.Sprintf("%d", obj.Size))
 	}
-	c.Set(fiber.HeaderContentDisposition, fmt.Sprintf("attachment; filename=%q", filepath.Base(obj.ObjectKey)))
+
+	disposition := "inline"
+	if c.Query("contentDisposition") == "attachment" || c.Query("content_disposition") == "attachment" {
+		disposition = "attachment"
+	}
+	c.Set(fiber.HeaderContentDisposition, fmt.Sprintf("%s; filename=%q", disposition, filepath.Base(obj.ObjectKey)))
 
 	return c.SendStream(reader)
 }

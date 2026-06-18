@@ -516,6 +516,38 @@ paths:
       tags:
       - objects
     get:
+      description: Retrieve the raw payload of an object by its unique object key.
+        Supports content disposition customization via query parameters.
+      parameters:
+      - description: Object Key
+        in: path
+        name: key
+        required: true
+        type: string
+      - description: 'Content disposition type: inline (default) or attachment'
+        in: query
+        name: contentDisposition
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.APIError'
+      summary: Get object content (Download/Stream)
+      tags:
+      - objects
+  /objects/{key}/metadata:
+    get:
       description: Get metadata of an object by its unique object key
       parameters:
       - description: Object Key
@@ -539,33 +571,6 @@ paths:
           schema:
             $ref: '#/definitions/main.APIError'
       summary: Get object metadata
-      tags:
-      - objects
-  /objects/{key}/download:
-    get:
-      description: Download the raw payload of an object by its unique object key
-      parameters:
-      - description: Object Key
-        in: path
-        name: key
-        required: true
-        type: string
-      produces:
-      - application/octet-stream
-      responses:
-        "200":
-          description: OK
-          schema:
-            type: file
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/main.APIError'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/main.APIError'
-      summary: Download object content
       tags:
       - objects
 swagger: "2.0"

@@ -114,7 +114,7 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		t.Errorf("Mismatch in uploaded object: %+v", obj)
 	}
 
-	req = httptest.NewRequest("GET", "/api/v1/objects/"+obj.ObjectKey, nil)
+	req = httptest.NewRequest("GET", "/api/v1/objects/"+obj.ObjectKey+"/metadata", nil)
 	resp, err = env.App.Test(req)
 	if err != nil {
 		t.Fatalf("Failed to perform request: %v", err)
@@ -148,7 +148,8 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		t.Errorf("Expected list containing 1 object, got: %+v", list)
 	}
 
-	req = httptest.NewRequest("GET", "/api/v1/objects/"+obj.ObjectKey+"/download", nil)
+	// Test default GET /objects/{key} (inline content disposition)
+	req = httptest.NewRequest("GET", "/api/v1/objects/"+obj.ObjectKey, nil)
 	resp, err = env.App.Test(req)
 	if err != nil {
 		t.Fatalf("Failed to perform request: %v", err)
@@ -156,12 +157,44 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
 	}
+	cd := resp.Header.Get("Content-Disposition")
+	if cd != `inline; filename="notes.txt"` {
+		t.Errorf("Expected Content-Disposition to be 'inline; filename=\"notes.txt\"', got %q", cd)
+	}
 	dlContent, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("Failed to read download content: %v", err)
 	}
 	if string(dlContent) != "Hello, this is my note content." {
 		t.Errorf("Expected downloaded content 'Hello, this is my note content.', got %q", string(dlContent))
+	}
+
+	// Test GET /objects/{key}?contentDisposition=attachment (attachment content disposition)
+	req = httptest.NewRequest("GET", "/api/v1/objects/"+obj.ObjectKey+"?contentDisposition=attachment", nil)
+	resp, err = env.App.Test(req)
+	if err != nil {
+		t.Fatalf("Failed to perform request: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", resp.StatusCode)
+	}
+	cdAttachment := resp.Header.Get("Content-Disposition")
+	if cdAttachment != `attachment; filename="notes.txt"` {
+		t.Errorf("Expected Content-Disposition to be 'attachment; filename=\"notes.txt\"', got %q", cdAttachment)
+	}
+
+	// Test GET /objects/{key}?content_disposition=attachment (alternative snake_case param name)
+	req = httptest.NewRequest("GET", "/api/v1/objects/"+obj.ObjectKey+"?content_disposition=attachment", nil)
+	resp, err = env.App.Test(req)
+	if err != nil {
+		t.Fatalf("Failed to perform request: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", resp.StatusCode)
+	}
+	cdAttachment2 := resp.Header.Get("Content-Disposition")
+	if cdAttachment2 != `attachment; filename="notes.txt"` {
+		t.Errorf("Expected Content-Disposition to be 'attachment; filename=\"notes.txt\"', got %q", cdAttachment2)
 	}
 
 	req = httptest.NewRequest("DELETE", "/api/v1/objects/"+obj.ObjectKey, nil)
@@ -174,6 +207,15 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 	}
 
 	req = httptest.NewRequest("GET", "/api/v1/objects/"+obj.ObjectKey, nil)
+	resp, err = env.App.Test(req)
+	if err != nil {
+		t.Fatalf("Failed to perform request: %v", err)
+	}
+	if resp.StatusCode != http.StatusNotFound {
+		t.Errorf("Expected status 404 for deleted object content, got %d", resp.StatusCode)
+	}
+
+	req = httptest.NewRequest("GET", "/api/v1/objects/"+obj.ObjectKey+"/metadata", nil)
 	resp, err = env.App.Test(req)
 	if err != nil {
 		t.Fatalf("Failed to perform request: %v", err)

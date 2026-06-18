@@ -605,14 +605,14 @@ const docTemplate = `{
         },
         "/objects/{key}": {
             "get": {
-                "description": "Get metadata of an object by its unique object key",
+                "description": "Retrieve the raw payload of an object by its unique object key. Supports content disposition customization via query parameters.",
                 "produces": [
-                    "application/json"
+                    "application/octet-stream"
                 ],
                 "tags": [
                     "objects"
                 ],
-                "summary": "Get object metadata",
+                "summary": "Get object content (Download/Stream)",
                 "parameters": [
                     {
                         "type": "string",
@@ -620,13 +620,19 @@ const docTemplate = `{
                         "name": "key",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Content disposition type: inline (default) or attachment",
+                        "name": "contentDisposition",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/object.Object"
+                            "type": "file"
                         }
                     },
                     "404": {
@@ -680,16 +686,16 @@ const docTemplate = `{
                 }
             }
         },
-        "/objects/{key}/download": {
+        "/objects/{key}/metadata": {
             "get": {
-                "description": "Download the raw payload of an object by its unique object key",
+                "description": "Get metadata of an object by its unique object key",
                 "produces": [
-                    "application/octet-stream"
+                    "application/json"
                 ],
                 "tags": [
                     "objects"
                 ],
-                "summary": "Download object content",
+                "summary": "Get object metadata",
                 "parameters": [
                     {
                         "type": "string",
@@ -703,7 +709,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "file"
+                            "$ref": "#/definitions/object.Object"
                         }
                     },
                     "404": {
