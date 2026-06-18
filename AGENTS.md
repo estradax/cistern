@@ -182,3 +182,18 @@ b, err := repo.Create(ctx, bucket.CreateBucketInput{BucketKey: "my-bucket", Owne
 // Get a bucket by ID
 b, err := repo.Get(ctx, "bucket-uuid")
 ```
+
+---
+
+## 6. Running Tests
+
+To run database-backed unit and integration tests:
+
+```bash
+make test
+# OR
+go test -v ./...
+```
+
+The testing harness automatically loads `.env.testing`, initializes database schemas using the latest migrations under `db/migrations/`, and ensures a clean isolated database state for each test suite run.
+
