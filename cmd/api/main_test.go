@@ -1,49 +1,45 @@
-// @title Cistern API
-// @version 1.0
-// @description API Server for Cistern Object Storage
-// @host localhost:3000
-// @BasePath /api/v1
 package main
 
 import (
-	"log"
 	"os"
-
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/gofiber/contrib/v3/swaggerui"
-	"github.com/gofiber/fiber/v3"
-	"github.com/jmoiron/sqlx"
-	"github.com/joho/godotenv"
+	"testing"
 
 	"github.com/estradax/cistern/internal/apikey"
 	"github.com/estradax/cistern/internal/bucket"
 	"github.com/estradax/cistern/internal/client"
 	"github.com/estradax/cistern/internal/object"
 	"github.com/estradax/cistern/internal/storage"
+	"github.com/estradax/cistern/internal/testutil"
+	"github.com/gofiber/fiber/v3"
+	"github.com/jmoiron/sqlx"
 )
 
-func main() {
-	_ = godotenv.Load()
+type TestEnv struct {
+	App        *fiber.App
+	DB         *sqlx.DB
+	ClientRepo *client.Repository
+	APIKeyRepo *apikey.Repository
+	BucketRepo *bucket.Repository
+	ObjService *object.Service
+	Teardown   func()
+}
 
-	dsn := os.Getenv("DB_DSN")
-	if dsn == "" {
-		log.Fatal("DB_DSN environment variable is not set")
-	}
+func setupTestApp(t *testing.T) *TestEnv {
+	t.Helper()
 
-	storageDir := os.Getenv("STORAGE_DIR")
-	if storageDir == "" {
-		storageDir = "./data/storage"
-	}
+	db := testutil.SetupTestDB(t)
 
-	db, err := sqlx.Connect("mysql", dsn)
+	tempDir, err := os.MkdirTemp("", "cistern-test-storage-*")
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		db.Close()
+		t.Fatalf("Failed to create temp storage directory: %v", err)
 	}
-	defer db.Close()
 
-	store, err := storage.NewLocalDriver(storageDir)
+	store, err := storage.NewLocalDriver(tempDir)
 	if err != nil {
-		log.Fatalf("Failed to initialize storage driver: %v", err)
+		os.RemoveAll(tempDir)
+		db.Close()
+		t.Fatalf("Failed to initialize storage driver: %v", err)
 	}
 
 	clientRepo := client.NewRepository(db)
@@ -53,15 +49,8 @@ func main() {
 	objService := object.NewService(objRepo, store)
 
 	server := NewServer(clientRepo, apiKeyRepo, bucketRepo, objService)
+
 	app := fiber.New()
-
-	swaggerCfg := swaggerui.Config{
-		FilePath: "./docs/swagger.json",
-		Path:     "swagger",
-		Title:    "Cistern API Documentation",
-	}
-	app.Use(swaggerui.New(swaggerCfg))
-
 	api := app.Group("/api/v1")
 
 	api.Post("/clients", server.CreateClient)
@@ -85,14 +74,18 @@ func main() {
 	api.Get("/objects/:id/download", server.DownloadObject)
 	api.Delete("/objects/:id", server.DeleteObject)
 
-	app.Use(func(c fiber.Ctx) error {
-		return c.Status(fiber.StatusNotFound).JSON(APIError{Error: "route not found"})
-	})
-
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "3000"
+	teardown := func() {
+		db.Close()
+		os.RemoveAll(tempDir)
 	}
-	log.Printf("Cistern API Server is starting on port %s...", port)
-	log.Fatal(app.Listen(":" + port))
+
+	return &TestEnv{
+		App:        app,
+		DB:         db,
+		ClientRepo: clientRepo,
+		APIKeyRepo: apiKeyRepo,
+		BucketRepo: bucketRepo,
+		ObjService: objService,
+		Teardown:   teardown,
+	}
 }

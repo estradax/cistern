@@ -1,0 +1,157 @@
+package main
+
+import (
+	"fmt"
+	"path/filepath"
+
+	_ "github.com/estradax/cistern/internal/object"
+	"github.com/gofiber/fiber/v3"
+)
+
+// @Summary Upload an object
+// @Description Upload a file to a specific bucket. The bucket ID is passed in the URL path. The file should be sent as multipart/form-data. An optional object key and content-type can be supplied.
+// @Tags objects
+// @Accept multipart/form-data
+// @Produce json
+// @Param bucket_id path string true "Bucket ID"
+// @Param file formData file true "File to upload"
+// @Param key formData string false "Object Key (if omitted, defaults to the filename)"
+// @Param content_type formData string false "Content-Type (if omitted, defaults to file mime-type)"
+// @Success 201 {object} object.Object
+// @Failure 400 {object} APIError
+// @Failure 500 {object} APIError
+// @Router /buckets/{bucket_id}/objects [post]
+func (s *Server) UploadObject(c fiber.Ctx) error {
+	bucketID := c.Params("bucket_id")
+	if bucketID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing bucket ID"})
+	}
+
+	file, err := c.FormFile("file")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing file: " + err.Error()})
+	}
+
+	key := c.FormValue("key")
+	if key == "" {
+		key = file.Filename
+	}
+
+	contentType := c.FormValue("content_type")
+	if contentType == "" {
+		contentType = file.Header.Get("Content-Type")
+	}
+
+	src, err := file.Open()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(APIError{Error: "failed to open file: " + err.Error()})
+	}
+	defer src.Close()
+
+	obj, err := s.objService.Upload(c.Context(), bucketID, key, contentType, src)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: err.Error()})
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(obj)
+}
+
+// @Summary Get object metadata
+// @Description Get metadata of an object by its unique ID
+// @Tags objects
+// @Produce json
+// @Param id path string true "Object ID"
+// @Success 200 {object} object.Object
+// @Failure 404 {object} APIError
+// @Failure 500 {object} APIError
+// @Router /objects/{id} [get]
+func (s *Server) GetObject(c fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing object ID"})
+	}
+
+	obj, err := s.objService.Get(c.Context(), id)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(APIError{Error: err.Error()})
+	}
+	if obj == nil {
+		return c.Status(fiber.StatusNotFound).JSON(APIError{Error: "object not found"})
+	}
+
+	return c.JSON(obj)
+}
+
+// @Summary Download object content
+// @Description Download the raw payload of an object by its unique ID
+// @Tags objects
+// @Produce octet-stream
+// @Param id path string true "Object ID"
+// @Success 200 {file} file
+// @Failure 404 {object} APIError
+// @Failure 500 {object} APIError
+// @Router /objects/{id}/download [get]
+func (s *Server) DownloadObject(c fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing object ID"})
+	}
+
+	obj, reader, err := s.objService.Download(c.Context(), id)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(APIError{Error: err.Error()})
+	}
+
+	c.Set(fiber.HeaderContentType, obj.ContentType)
+	if obj.Size > 0 {
+		c.Set(fiber.HeaderContentLength, fmt.Sprintf("%d", obj.Size))
+	}
+	c.Set(fiber.HeaderContentDisposition, fmt.Sprintf("attachment; filename=%q", filepath.Base(obj.ObjectKey)))
+
+	return c.SendStream(reader)
+}
+
+// @Summary Delete an object
+// @Description Delete an object's metadata and its physical storage by ID
+// @Tags objects
+// @Produce json
+// @Param id path string true "Object ID"
+// @Success 204 "No Content"
+// @Failure 400 {object} APIError
+// @Failure 500 {object} APIError
+// @Router /objects/{id} [delete]
+func (s *Server) DeleteObject(c fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing object ID"})
+	}
+
+	if err := s.objService.Delete(c.Context(), id); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(APIError{Error: err.Error()})
+	}
+
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+// @Summary List objects in a bucket
+// @Description Get a list of all objects inside the specified bucket
+// @Tags objects
+// @Produce json
+// @Param bucket_id path string true "Bucket ID"
+// @Success 200 {array} object.Object
+// @Failure 400 {object} APIError
+// @Failure 500 {object} APIError
+// @Router /buckets/{bucket_id}/objects [get]
+func (s *Server) ListObjects(c fiber.Ctx) error {
+	bucketID := c.Params("bucket_id")
+	if bucketID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing bucket ID"})
+	}
+
+	list, err := s.objService.ListByBucket(c.Context(), bucketID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(APIError{Error: err.Error()})
+	}
+
+	return c.JSON(list)
+}

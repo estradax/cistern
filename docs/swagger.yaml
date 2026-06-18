@@ -1,0 +1,570 @@
+basePath: /api/v1
+definitions:
+  apikey.APIKey:
+    properties:
+      access_key:
+        type: string
+      client_id:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  apikey.CreateAPIKeyInput:
+    properties:
+      client_id:
+        type: string
+      name:
+        type: string
+    type: object
+  apikey.CreateAPIKeyResult:
+    properties:
+      api_key:
+        $ref: '#/definitions/apikey.APIKey'
+      secret_key:
+        type: string
+    type: object
+  bucket.Bucket:
+    properties:
+      bucket_key:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      owner_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  bucket.CreateBucketInput:
+    properties:
+      bucket_key:
+        type: string
+      owner_id:
+        type: string
+    type: object
+  client.Client:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  client.CreateClientInput:
+    properties:
+      name:
+        type: string
+    type: object
+  main.APIError:
+    properties:
+      error:
+        type: string
+    type: object
+  object.Object:
+    properties:
+      bucket_id:
+        type: string
+      content_type:
+        type: string
+      created_at:
+        type: string
+      etag:
+        type: string
+      id:
+        type: string
+      object_key:
+        type: string
+      size:
+        type: integer
+      storage_path:
+        type: string
+      updated_at:
+        type: string
+    type: object
+host: localhost:3000
+info:
+  contact: {}
+  description: API Server for Cistern Object Storage
+  title: Cistern API
+  version: "1.0"
+paths:
+  /apikeys:
+    post:
+      consumes:
+      - application/json
+      description: Generate a new API key (client_id is required)
+      parameters:
+      - description: Generate API Key payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/apikey.CreateAPIKeyInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/apikey.CreateAPIKeyResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.APIError'
+      summary: Generate an API key
+      tags:
+      - API Keys
+  /apikeys/{id}:
+    delete:
+      description: Delete an API key by its unique ID
+      parameters:
+      - description: API Key ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.APIError'
+      summary: Delete an API key
+      tags:
+      - API Keys
+    get:
+      description: Get API key metadata by its unique ID
+      parameters:
+      - description: API Key ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/apikey.APIKey'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.APIError'
+      summary: Get an API key
+      tags:
+      - API Keys
+  /buckets:
+    post:
+      consumes:
+      - application/json
+      description: Create a new bucket with the given key and owner client ID
+      parameters:
+      - description: Create bucket payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/bucket.CreateBucketInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/bucket.Bucket'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.APIError'
+      summary: Create a bucket
+      tags:
+      - buckets
+  /buckets/{bucket_id}/objects:
+    get:
+      description: Get a list of all objects inside the specified bucket
+      parameters:
+      - description: Bucket ID
+        in: path
+        name: bucket_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/object.Object'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.APIError'
+      summary: List objects in a bucket
+      tags:
+      - objects
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload a file to a specific bucket. The bucket ID is passed in
+        the URL path. The file should be sent as multipart/form-data. An optional
+        object key and content-type can be supplied.
+      parameters:
+      - description: Bucket ID
+        in: path
+        name: bucket_id
+        required: true
+        type: string
+      - description: File to upload
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: Object Key (if omitted, defaults to the filename)
+        in: formData
+        name: key
+        type: string
+      - description: Content-Type (if omitted, defaults to file mime-type)
+        in: formData
+        name: content_type
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/object.Object'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.APIError'
+      summary: Upload an object
+      tags:
+      - objects
+  /buckets/{id}:
+    delete:
+      description: Delete a bucket by its unique ID
+      parameters:
+      - description: Bucket ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.APIError'
+      summary: Delete a bucket
+      tags:
+      - buckets
+    get:
+      description: Get a bucket by its unique ID
+      parameters:
+      - description: Bucket ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/bucket.Bucket'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.APIError'
+      summary: Get a bucket
+      tags:
+      - buckets
+    put:
+      consumes:
+      - application/json
+      description: Update a bucket's key and/or owner ID by its unique ID
+      parameters:
+      - description: Bucket ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update bucket payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/bucket.CreateBucketInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/bucket.Bucket'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.APIError'
+      summary: Update a bucket
+      tags:
+      - buckets
+  /clients:
+    post:
+      consumes:
+      - application/json
+      description: Create a new client with the given name
+      parameters:
+      - description: Create client payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/client.CreateClientInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/client.Client'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.APIError'
+      summary: Create a client
+      tags:
+      - clients
+  /clients/{id}:
+    delete:
+      description: Delete a client by its unique ID
+      parameters:
+      - description: Client ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.APIError'
+      summary: Delete a client
+      tags:
+      - clients
+    get:
+      description: Get a client by its unique ID
+      parameters:
+      - description: Client ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/client.Client'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.APIError'
+      summary: Get a client
+      tags:
+      - clients
+    put:
+      consumes:
+      - application/json
+      description: Update a client's name by its unique ID
+      parameters:
+      - description: Client ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update client payload (only name is needed)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/client.CreateClientInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/client.Client'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.APIError'
+      summary: Update a client
+      tags:
+      - clients
+  /objects/{id}:
+    delete:
+      description: Delete an object's metadata and its physical storage by ID
+      parameters:
+      - description: Object ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.APIError'
+      summary: Delete an object
+      tags:
+      - objects
+    get:
+      description: Get metadata of an object by its unique ID
+      parameters:
+      - description: Object ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/object.Object'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.APIError'
+      summary: Get object metadata
+      tags:
+      - objects
+  /objects/{id}/download:
+    get:
+      description: Download the raw payload of an object by its unique ID
+      parameters:
+      - description: Object ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.APIError'
+      summary: Download object content
+      tags:
+      - objects
+swagger: "2.0"

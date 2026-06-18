@@ -2,7 +2,7 @@
 BINARY_CLI = bin/cistern
 BINARY_API = bin/api
 
-.PHONY: all build test clean help
+.PHONY: all build test clean swagger help
 
 all: build
 
@@ -16,6 +16,9 @@ test:
 clean:
 	rm -rf bin
 
+swagger:
+	~/go/bin/swag init -g cmd/api/main.go
+
 help:
 	@echo "Usage:"
 	@echo "  make [target]"
@@ -24,3 +27,4 @@ help:
 	@echo "  build           Build all binaries (placed in bin/)"
 	@echo "  test            Run all tests"
 	@echo "  clean           Remove build artifacts"
+	@echo "  swagger         Regenerate Swagger API documentation"
