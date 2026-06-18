@@ -4,11 +4,18 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"regexp"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 )
+
+var bucketKeyRegex = regexp.MustCompile(`^[a-zA-Z0-9-]+$`)
+
+func isValidBucketKey(key string) bool {
+	return bucketKeyRegex.MatchString(key)
+}
 
 type Repository struct {
 	db *sqlx.DB
@@ -23,6 +30,9 @@ func NewRepository(db *sqlx.DB) *Repository {
 func (r *Repository) Create(ctx context.Context, input CreateBucketInput) (*Bucket, error) {
 	if input.BucketKey == "" {
 		return nil, errors.New("bucket key cannot be empty")
+	}
+	if !isValidBucketKey(input.BucketKey) {
+		return nil, errors.New("bucket key can only contain alphanumeric characters and dashes")
 	}
 	if input.OwnerID == "" {
 		return nil, errors.New("owner ID cannot be empty")
@@ -63,6 +73,9 @@ func (r *Repository) Update(ctx context.Context, input UpdateBucketInput) (*Buck
 	}
 	if input.BucketKey == "" {
 		return nil, errors.New("bucket key cannot be empty")
+	}
+	if !isValidBucketKey(input.BucketKey) {
+		return nil, errors.New("bucket key can only contain alphanumeric characters and dashes")
 	}
 	if input.OwnerID == "" {
 		return nil, errors.New("owner ID cannot be empty")

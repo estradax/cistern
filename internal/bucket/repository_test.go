@@ -66,6 +66,27 @@ func TestBucketRepository_Create(t *testing.T) {
 		if err == nil {
 			t.Error("expected error for empty owner ID, got nil")
 		}
+
+		// Test invalid bucket keys
+		invalidKeys := []string{
+			"my bucket",
+			"my_bucket",
+			"my.bucket",
+			"my#bucket",
+			"my/bucket",
+			"bucket!",
+		}
+		for _, key := range invalidKeys {
+			_, err = bucketRepo.Create(ctx, bucket.CreateBucketInput{
+				BucketKey: key,
+				OwnerID:   "some-owner",
+			})
+			if err == nil {
+				t.Errorf("expected error for bucket key %q containing invalid character, got nil", key)
+			} else if err.Error() != "bucket key can only contain alphanumeric characters and dashes" {
+				t.Errorf("expected validation error message, got: %v", err)
+			}
+		}
 	})
 
 	t.Run("foreign key violation", func(t *testing.T) {
@@ -137,6 +158,19 @@ func TestBucketRepository_GetAndUpdate(t *testing.T) {
 		fetched, _ := bucketRepo.Get(ctx, b.ID)
 		if fetched.BucketKey != "updated-key" {
 			t.Errorf("expected database key to be 'updated-key', got %q", fetched.BucketKey)
+		}
+	})
+
+	t.Run("update bucket with invalid key", func(t *testing.T) {
+		_, err := bucketRepo.Update(ctx, bucket.UpdateBucketInput{
+			ID:        b.ID,
+			BucketKey: "invalid_key_with_underscore",
+			OwnerID:   c2.ID,
+		})
+		if err == nil {
+			t.Error("expected error updating bucket with invalid bucket key, got nil")
+		} else if err.Error() != "bucket key can only contain alphanumeric characters and dashes" {
+			t.Errorf("expected validation error, got: %v", err)
 		}
 	})
 }
