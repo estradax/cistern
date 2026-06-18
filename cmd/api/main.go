@@ -4,6 +4,16 @@
 // @host localhost:3000
 // @BasePath /api/v1
 // @schemes http https
+
+// @securityDefinitions.apikey AccessKey
+// @in header
+// @name X-Cistern-Access-Key
+// @description Client Access Key
+
+// @securityDefinitions.apikey SecretKey
+// @in header
+// @name X-Cistern-Secret-Key
+// @description Client Secret Key
 package main
 
 import (
@@ -77,17 +87,19 @@ func main() {
 	api.Get("/apikeys/:id", server.GetAPIKey)
 	api.Delete("/apikeys/:id", server.DeleteAPIKey)
 
-	api.Post("/buckets", server.CreateBucket)
-	api.Get("/buckets/:bucket_key", server.GetBucket)
-	api.Put("/buckets/:bucket_key", server.UpdateBucket)
-	api.Delete("/buckets/:bucket_key", server.DeleteBucket)
+	auth := api.Group("", server.AuthMiddleware)
 
-	api.Post("/buckets/:bucket_key/objects", server.UploadObject)
-	api.Get("/buckets/:bucket_key/objects", server.ListObjects)
+	auth.Post("/buckets", server.CreateBucket)
+	auth.Get("/buckets/:bucket_key", server.GetBucket)
+	auth.Put("/buckets/:bucket_key", server.UpdateBucket)
+	auth.Delete("/buckets/:bucket_key", server.DeleteBucket)
 
-	api.Get("/objects/*/metadata", server.GetObjectMetadata)
-	api.Get("/objects/*", server.GetObjectContent)
-	api.Delete("/objects/*", server.DeleteObject)
+	auth.Post("/buckets/:bucket_key/objects", server.UploadObject)
+	auth.Get("/buckets/:bucket_key/objects", server.ListObjects)
+
+	auth.Get("/objects/*/metadata", server.GetObjectMetadata)
+	auth.Get("/objects/*", server.GetObjectContent)
+	auth.Delete("/objects/*", server.DeleteObject)
 
 	app.Use(func(c fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).JSON(APIError{Error: "route not found"})

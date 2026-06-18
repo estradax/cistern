@@ -13,12 +13,23 @@ import (
 // @Param body body bucket.CreateBucketInput true "Create bucket payload"
 // @Success 201 {object} bucket.Bucket
 // @Failure 400 {object} APIError
+// @Failure 401 {object} APIError
+// @Failure 403 {object} APIError
 // @Failure 500 {object} APIError
+// @Security AccessKey
+// @Security SecretKey
 // @Router /buckets [post]
 func (s *Server) CreateBucket(c fiber.Ctx) error {
 	var input bucket.CreateBucketInput
 	if err := c.Bind().Body(&input); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "invalid request body: " + err.Error()})
+	}
+
+	clientID := c.Locals("client_id").(string)
+	if input.OwnerID == "" {
+		input.OwnerID = clientID
+	} else if input.OwnerID != clientID {
+		return c.Status(fiber.StatusForbidden).JSON(APIError{Error: "cannot create bucket for another client"})
 	}
 
 	b, err := s.bucketRepo.Create(c.Context(), input)
@@ -35,8 +46,12 @@ func (s *Server) CreateBucket(c fiber.Ctx) error {
 // @Produce json
 // @Param bucket_key path string true "Bucket Key"
 // @Success 200 {object} bucket.Bucket
+// @Failure 401 {object} APIError
+// @Failure 403 {object} APIError
 // @Failure 404 {object} APIError
 // @Failure 500 {object} APIError
+// @Security AccessKey
+// @Security SecretKey
 // @Router /buckets/{bucket_key} [get]
 func (s *Server) GetBucket(c fiber.Ctx) error {
 	bucketKey := c.Params("bucket_key")
@@ -52,6 +67,11 @@ func (s *Server) GetBucket(c fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).JSON(APIError{Error: "bucket not found"})
 	}
 
+	clientID := c.Locals("client_id").(string)
+	if b.OwnerID != clientID {
+		return c.Status(fiber.StatusForbidden).JSON(APIError{Error: "access denied to this bucket"})
+	}
+
 	return c.JSON(b)
 }
 
@@ -64,8 +84,12 @@ func (s *Server) GetBucket(c fiber.Ctx) error {
 // @Param body body bucket.CreateBucketInput true "Update bucket payload"
 // @Success 200 {object} bucket.Bucket
 // @Failure 400 {object} APIError
+// @Failure 401 {object} APIError
+// @Failure 403 {object} APIError
 // @Failure 404 {object} APIError
 // @Failure 500 {object} APIError
+// @Security AccessKey
+// @Security SecretKey
 // @Router /buckets/{bucket_key} [put]
 func (s *Server) UpdateBucket(c fiber.Ctx) error {
 	bucketKey := c.Params("bucket_key")
@@ -84,6 +108,17 @@ func (s *Server) UpdateBucket(c fiber.Ctx) error {
 	}
 	if b == nil {
 		return c.Status(fiber.StatusNotFound).JSON(APIError{Error: "bucket not found"})
+	}
+
+	clientID := c.Locals("client_id").(string)
+	if b.OwnerID != clientID {
+		return c.Status(fiber.StatusForbidden).JSON(APIError{Error: "access denied to this bucket"})
+	}
+
+	if input.OwnerID == "" {
+		input.OwnerID = clientID
+	} else if input.OwnerID != clientID {
+		return c.Status(fiber.StatusForbidden).JSON(APIError{Error: "cannot assign bucket ownership to another client"})
 	}
 
 	updateInput := bucket.UpdateBucketInput{
@@ -107,7 +142,11 @@ func (s *Server) UpdateBucket(c fiber.Ctx) error {
 // @Param bucket_key path string true "Bucket Key"
 // @Success 204 "No Content"
 // @Failure 400 {object} APIError
+// @Failure 401 {object} APIError
+// @Failure 403 {object} APIError
 // @Failure 500 {object} APIError
+// @Security AccessKey
+// @Security SecretKey
 // @Router /buckets/{bucket_key} [delete]
 func (s *Server) DeleteBucket(c fiber.Ctx) error {
 	bucketKey := c.Params("bucket_key")
@@ -121,6 +160,11 @@ func (s *Server) DeleteBucket(c fiber.Ctx) error {
 	}
 	if b == nil {
 		return c.Status(fiber.StatusNotFound).JSON(APIError{Error: "bucket not found"})
+	}
+
+	clientID := c.Locals("client_id").(string)
+	if b.OwnerID != clientID {
+		return c.Status(fiber.StatusForbidden).JSON(APIError{Error: "access denied to this bucket"})
 	}
 
 	if err := s.bucketRepo.Delete(c.Context(), b.ID); err != nil {

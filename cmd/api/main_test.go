@@ -62,17 +62,20 @@ func setupTestApp(t *testing.T) *TestEnv {
 	api.Get("/apikeys/:id", server.GetAPIKey)
 	api.Delete("/apikeys/:id", server.DeleteAPIKey)
 
-	api.Post("/buckets", server.CreateBucket)
-	api.Get("/buckets/:bucket_key", server.GetBucket)
-	api.Put("/buckets/:bucket_key", server.UpdateBucket)
-	api.Delete("/buckets/:bucket_key", server.DeleteBucket)
+	// Authenticated routes for buckets and objects
+	auth := api.Group("", server.AuthMiddleware)
 
-	api.Post("/buckets/:bucket_key/objects", server.UploadObject)
-	api.Get("/buckets/:bucket_key/objects", server.ListObjects)
+	auth.Post("/buckets", server.CreateBucket)
+	auth.Get("/buckets/:bucket_key", server.GetBucket)
+	auth.Put("/buckets/:bucket_key", server.UpdateBucket)
+	auth.Delete("/buckets/:bucket_key", server.DeleteBucket)
 
-	api.Get("/objects/*/metadata", server.GetObjectMetadata)
-	api.Get("/objects/*", server.GetObjectContent)
-	api.Delete("/objects/*", server.DeleteObject)
+	auth.Post("/buckets/:bucket_key/objects", server.UploadObject)
+	auth.Get("/buckets/:bucket_key/objects", server.ListObjects)
+
+	auth.Get("/objects/*/metadata", server.GetObjectMetadata)
+	auth.Get("/objects/*", server.GetObjectContent)
+	auth.Delete("/objects/*", server.DeleteObject)
 
 	teardown := func() {
 		db.Close()

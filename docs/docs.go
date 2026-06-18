@@ -140,6 +140,14 @@ const docTemplate = `{
         },
         "/buckets": {
             "post": {
+                "security": [
+                    {
+                        "AccessKey": []
+                    },
+                    {
+                        "SecretKey": []
+                    }
+                ],
                 "description": "Create a new bucket with the given key and owner client ID",
                 "consumes": [
                     "application/json"
@@ -175,6 +183,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/main.APIError"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/main.APIError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/main.APIError"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -186,6 +206,14 @@ const docTemplate = `{
         },
         "/buckets/{bucket_key}": {
             "get": {
+                "security": [
+                    {
+                        "AccessKey": []
+                    },
+                    {
+                        "SecretKey": []
+                    }
+                ],
                 "description": "Get a bucket by its unique key",
                 "produces": [
                     "application/json"
@@ -210,6 +238,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/bucket.Bucket"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/main.APIError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/main.APIError"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -225,6 +265,14 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "AccessKey": []
+                    },
+                    {
+                        "SecretKey": []
+                    }
+                ],
                 "description": "Update a bucket's key and/or owner ID by its unique key",
                 "consumes": [
                     "application/json"
@@ -267,6 +315,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/main.APIError"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/main.APIError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/main.APIError"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -282,6 +342,14 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "AccessKey": []
+                    },
+                    {
+                        "SecretKey": []
+                    }
+                ],
                 "description": "Delete a bucket by its unique key",
                 "produces": [
                     "application/json"
@@ -309,6 +377,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/main.APIError"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/main.APIError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/main.APIError"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -320,6 +400,14 @@ const docTemplate = `{
         },
         "/buckets/{bucket_key}/objects": {
             "get": {
+                "security": [
+                    {
+                        "AccessKey": []
+                    },
+                    {
+                        "SecretKey": []
+                    }
+                ],
                 "description": "Get a list of all objects inside the specified bucket",
                 "produces": [
                     "application/json"
@@ -353,6 +441,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/main.APIError"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/main.APIError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/main.APIError"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -362,6 +462,14 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "AccessKey": []
+                    },
+                    {
+                        "SecretKey": []
+                    }
+                ],
                 "description": "Upload a file to a specific bucket. The bucket key is passed in the URL path. The file should be sent as multipart/form-data. An optional object key and content-type can be supplied.",
                 "consumes": [
                     "multipart/form-data"
@@ -410,6 +518,18 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/main.APIError"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/main.APIError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "$ref": "#/definitions/main.APIError"
                         }
@@ -605,6 +725,14 @@ const docTemplate = `{
         },
         "/objects/{key}": {
             "get": {
+                "security": [
+                    {
+                        "AccessKey": []
+                    },
+                    {
+                        "SecretKey": []
+                    }
+                ],
                 "description": "Retrieve the raw payload of an object by its unique object key. Supports content disposition customization via query parameters.",
                 "produces": [
                     "application/octet-stream"
@@ -635,6 +763,18 @@ const docTemplate = `{
                             "type": "file"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/main.APIError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/main.APIError"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -650,6 +790,14 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "AccessKey": []
+                    },
+                    {
+                        "SecretKey": []
+                    }
+                ],
                 "description": "Delete an object's metadata and its physical storage by object key",
                 "produces": [
                     "application/json"
@@ -677,6 +825,18 @@ const docTemplate = `{
                             "$ref": "#/definitions/main.APIError"
                         }
                     },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/main.APIError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/main.APIError"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -688,6 +848,14 @@ const docTemplate = `{
         },
         "/objects/{key}/metadata": {
             "get": {
+                "security": [
+                    {
+                        "AccessKey": []
+                    },
+                    {
+                        "SecretKey": []
+                    }
+                ],
                 "description": "Get metadata of an object by its unique object key",
                 "produces": [
                     "application/json"
@@ -710,6 +878,18 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/object.Object"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/main.APIError"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/main.APIError"
                         }
                     },
                     "404": {
@@ -869,6 +1049,20 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "AccessKey": {
+            "description": "Client Access Key",
+            "type": "apiKey",
+            "name": "X-Cistern-Access-Key",
+            "in": "header"
+        },
+        "SecretKey": {
+            "description": "Client Secret Key",
+            "type": "apiKey",
+            "name": "X-Cistern-Secret-Key",
+            "in": "header"
         }
     }
 }`

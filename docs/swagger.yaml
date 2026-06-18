@@ -202,10 +202,21 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/main.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/main.APIError'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/main.APIError'
+      security:
+      - AccessKey: []
+      - SecretKey: []
       summary: Create a bucket
       tags:
       - buckets
@@ -227,10 +238,21 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/main.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/main.APIError'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/main.APIError'
+      security:
+      - AccessKey: []
+      - SecretKey: []
       summary: Delete a bucket
       tags:
       - buckets
@@ -249,6 +271,14 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/bucket.Bucket'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/main.APIError'
         "404":
           description: Not Found
           schema:
@@ -257,6 +287,9 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/main.APIError'
+      security:
+      - AccessKey: []
+      - SecretKey: []
       summary: Get a bucket
       tags:
       - buckets
@@ -287,6 +320,14 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/main.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/main.APIError'
         "404":
           description: Not Found
           schema:
@@ -295,6 +336,9 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/main.APIError'
+      security:
+      - AccessKey: []
+      - SecretKey: []
       summary: Update a bucket
       tags:
       - buckets
@@ -320,10 +364,21 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/main.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/main.APIError'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/main.APIError'
+      security:
+      - AccessKey: []
+      - SecretKey: []
       summary: List objects in a bucket
       tags:
       - objects
@@ -363,10 +418,21 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/main.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/main.APIError'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/main.APIError'
+      security:
+      - AccessKey: []
+      - SecretKey: []
       summary: Upload an object
       tags:
       - objects
@@ -508,10 +574,21 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/main.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/main.APIError'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/main.APIError'
+      security:
+      - AccessKey: []
+      - SecretKey: []
       summary: Delete an object
       tags:
       - objects
@@ -535,6 +612,14 @@ paths:
           description: OK
           schema:
             type: file
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/main.APIError'
         "404":
           description: Not Found
           schema:
@@ -543,6 +628,9 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/main.APIError'
+      security:
+      - AccessKey: []
+      - SecretKey: []
       summary: Get object content (Download/Stream)
       tags:
       - objects
@@ -562,6 +650,14 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/object.Object'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/main.APIError'
         "404":
           description: Not Found
           schema:
@@ -570,10 +666,24 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/main.APIError'
+      security:
+      - AccessKey: []
+      - SecretKey: []
       summary: Get object metadata
       tags:
       - objects
 schemes:
 - http
 - https
+securityDefinitions:
+  AccessKey:
+    description: Client Access Key
+    in: header
+    name: X-Cistern-Access-Key
+    type: apiKey
+  SecretKey:
+    description: Client Secret Key
+    in: header
+    name: X-Cistern-Secret-Key
+    type: apiKey
 swagger: "2.0"

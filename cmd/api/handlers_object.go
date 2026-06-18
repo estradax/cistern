@@ -19,7 +19,11 @@ import (
 // @Param content_type formData string false "Content-Type (if omitted, defaults to file mime-type)"
 // @Success 201 {object} object.Object
 // @Failure 400 {object} APIError
+// @Failure 401 {object} APIError
+// @Failure 403 {object} APIError
 // @Failure 500 {object} APIError
+// @Security AccessKey
+// @Security SecretKey
 // @Router /buckets/{bucket_key}/objects [post]
 func (s *Server) UploadObject(c fiber.Ctx) error {
 	bucketKey := c.Params("bucket_key")
@@ -33,6 +37,11 @@ func (s *Server) UploadObject(c fiber.Ctx) error {
 	}
 	if b == nil {
 		return c.Status(fiber.StatusNotFound).JSON(APIError{Error: "bucket not found"})
+	}
+
+	clientID := c.Locals("client_id").(string)
+	if b.OwnerID != clientID {
+		return c.Status(fiber.StatusForbidden).JSON(APIError{Error: "access denied to this bucket"})
 	}
 
 	file, err := c.FormFile("file")
@@ -70,8 +79,12 @@ func (s *Server) UploadObject(c fiber.Ctx) error {
 // @Produce json
 // @Param key path string true "Object Key"
 // @Success 200 {object} object.Object
+// @Failure 401 {object} APIError
+// @Failure 403 {object} APIError
 // @Failure 404 {object} APIError
 // @Failure 500 {object} APIError
+// @Security AccessKey
+// @Security SecretKey
 // @Router /objects/{key}/metadata [get]
 func (s *Server) GetObjectMetadata(c fiber.Ctx) error {
 	key := c.Params("*")
@@ -87,6 +100,19 @@ func (s *Server) GetObjectMetadata(c fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).JSON(APIError{Error: "object not found"})
 	}
 
+	b, err := s.bucketRepo.Get(c.Context(), obj.BucketID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(APIError{Error: err.Error()})
+	}
+	if b == nil {
+		return c.Status(fiber.StatusNotFound).JSON(APIError{Error: "bucket not found"})
+	}
+
+	clientID := c.Locals("client_id").(string)
+	if b.OwnerID != clientID {
+		return c.Status(fiber.StatusForbidden).JSON(APIError{Error: "access denied to this object"})
+	}
+
 	return c.JSON(obj)
 }
 
@@ -97,8 +123,12 @@ func (s *Server) GetObjectMetadata(c fiber.Ctx) error {
 // @Param key path string true "Object Key"
 // @Param contentDisposition query string false "Content disposition type: inline (default) or attachment"
 // @Success 200 {file} file
+// @Failure 401 {object} APIError
+// @Failure 403 {object} APIError
 // @Failure 404 {object} APIError
 // @Failure 500 {object} APIError
+// @Security AccessKey
+// @Security SecretKey
 // @Router /objects/{key} [get]
 func (s *Server) GetObjectContent(c fiber.Ctx) error {
 	key := c.Params("*")
@@ -109,6 +139,22 @@ func (s *Server) GetObjectContent(c fiber.Ctx) error {
 	obj, reader, err := s.objService.DownloadByKey(c.Context(), key)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(APIError{Error: err.Error()})
+	}
+
+	b, err := s.bucketRepo.Get(c.Context(), obj.BucketID)
+	if err != nil {
+		reader.Close()
+		return c.Status(fiber.StatusInternalServerError).JSON(APIError{Error: err.Error()})
+	}
+	if b == nil {
+		reader.Close()
+		return c.Status(fiber.StatusNotFound).JSON(APIError{Error: "bucket not found"})
+	}
+
+	clientID := c.Locals("client_id").(string)
+	if b.OwnerID != clientID {
+		reader.Close()
+		return c.Status(fiber.StatusForbidden).JSON(APIError{Error: "access denied to this object"})
 	}
 
 	c.Set(fiber.HeaderContentType, obj.ContentType)
@@ -132,12 +178,37 @@ func (s *Server) GetObjectContent(c fiber.Ctx) error {
 // @Param key path string true "Object Key"
 // @Success 204 "No Content"
 // @Failure 400 {object} APIError
+// @Failure 401 {object} APIError
+// @Failure 403 {object} APIError
 // @Failure 500 {object} APIError
+// @Security AccessKey
+// @Security SecretKey
 // @Router /objects/{key} [delete]
 func (s *Server) DeleteObject(c fiber.Ctx) error {
 	key := c.Params("*")
 	if key == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing object key"})
+	}
+
+	obj, err := s.objService.GetByKey(c.Context(), key)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(APIError{Error: err.Error()})
+	}
+	if obj == nil {
+		return c.Status(fiber.StatusNotFound).JSON(APIError{Error: "object not found"})
+	}
+
+	b, err := s.bucketRepo.Get(c.Context(), obj.BucketID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(APIError{Error: err.Error()})
+	}
+	if b == nil {
+		return c.Status(fiber.StatusNotFound).JSON(APIError{Error: "bucket not found"})
+	}
+
+	clientID := c.Locals("client_id").(string)
+	if b.OwnerID != clientID {
+		return c.Status(fiber.StatusForbidden).JSON(APIError{Error: "access denied to this object"})
 	}
 
 	if err := s.objService.DeleteByKey(c.Context(), key); err != nil {
@@ -154,7 +225,11 @@ func (s *Server) DeleteObject(c fiber.Ctx) error {
 // @Param bucket_key path string true "Bucket Key"
 // @Success 200 {array} object.Object
 // @Failure 400 {object} APIError
+// @Failure 401 {object} APIError
+// @Failure 403 {object} APIError
 // @Failure 500 {object} APIError
+// @Security AccessKey
+// @Security SecretKey
 // @Router /buckets/{bucket_key}/objects [get]
 func (s *Server) ListObjects(c fiber.Ctx) error {
 	bucketKey := c.Params("bucket_key")
@@ -168,6 +243,11 @@ func (s *Server) ListObjects(c fiber.Ctx) error {
 	}
 	if b == nil {
 		return c.Status(fiber.StatusNotFound).JSON(APIError{Error: "bucket not found"})
+	}
+
+	clientID := c.Locals("client_id").(string)
+	if b.OwnerID != clientID {
+		return c.Status(fiber.StatusForbidden).JSON(APIError{Error: "access denied to this bucket"})
 	}
 
 	list, err := s.objService.ListByBucket(c.Context(), b.ID)
