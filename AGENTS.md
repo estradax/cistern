@@ -114,6 +114,29 @@ go build -o cistern ./cmd/cistern
   ./cistern buckets delete 'bucket-uuid-here'
   ```
 
+- **Upload Object**:
+  ```bash
+  ./cistern objects upload '{"bucket_id": "bucket-uuid-here", "object_key": "my/path.txt"}' /path/to/local/file
+  ```
+- **Read Object Metadata** (supports raw ID or JSON):
+  ```bash
+  ./cistern objects read 'object-uuid-here'
+  # OR
+  ./cistern objects read '{"id": "object-uuid-here"}'
+  ```
+- **Download Object**:
+  ```bash
+  ./cistern objects download 'object-uuid-here' /path/to/destination
+  ```
+- **Delete Object** (supports raw ID or JSON):
+  ```bash
+  ./cistern objects delete 'object-uuid-here'
+  ```
+- **List Objects in Bucket** (supports raw ID or JSON):
+  ```bash
+  ./cistern objects list 'bucket-uuid-here'
+  ```
+
 ---
 
 ## 3. Go Library Usage (`internal/client`)
@@ -185,7 +208,42 @@ b, err := repo.Get(ctx, "bucket-uuid")
 
 ---
 
-## 6. Running Tests
+## 6. Go Library Usage (`internal/object` & `internal/storage`)
+
+To interact with objects and storage programmatically in the Go code:
+
+```go
+import (
+	"context"
+	"bytes"
+	"github.com/estradax/cistern/internal/object"
+	"github.com/estradax/cistern/internal/storage"
+	"github.com/jmoiron/sqlx"
+)
+
+// Initialize the storage driver (e.g. Local Driver)
+store, err := storage.NewLocalDriver("./data/storage")
+
+// Initialize the Repository with a database pool
+repo := object.NewRepository(db)
+
+// Initialize the Service
+svc := object.NewService(repo, store)
+
+// Upload an object
+obj, err := svc.Upload(ctx, "bucket-uuid", "documents/notes.txt", "text/plain", bytes.NewReader([]byte("my content")))
+
+// Download an object payload (caller must close the reader)
+meta, reader, err := svc.Download(ctx, "object-uuid")
+defer reader.Close()
+
+// Delete an object (logical metadata delete and physical payload cleanup)
+err = svc.Delete(ctx, "object-uuid")
+```
+
+---
+
+## 7. Running Tests
 
 To run database-backed unit and integration tests:
 

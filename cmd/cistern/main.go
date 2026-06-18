@@ -4,14 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/estradax/cistern/internal/apikey"
 	"github.com/estradax/cistern/internal/bucket"
 	"github.com/estradax/cistern/internal/client"
+	"github.com/estradax/cistern/internal/object"
+	"github.com/estradax/cistern/internal/storage"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
@@ -26,7 +30,7 @@ func main() {
 	action := os.Args[2]
 	payload := os.Args[3]
 
-	if sub != "clients" && sub != "apikeys" && sub != "buckets" {
+	if sub != "clients" && sub != "apikeys" && sub != "buckets" && sub != "objects" {
 		printUsageAndExit()
 	}
 
@@ -206,6 +210,131 @@ func main() {
 		default:
 			printUsageAndExit()
 		}
+	case "objects":
+		storageDir := os.Getenv("STORAGE_DIR")
+		if storageDir == "" {
+			storageDir = "./data/storage"
+		}
+		store, err := storage.NewLocalDriver(storageDir)
+		if err != nil {
+			log.Fatalf("Failed to initialize storage driver: %v", err)
+		}
+
+		repo := object.NewRepository(db)
+		svc := object.NewService(repo, store)
+
+		switch action {
+		case "upload":
+			if len(os.Args) < 5 {
+				log.Fatal("File path argument is required for upload. Usage: cistern objects upload '<json_payload>' <filepath>")
+			}
+			filePath := os.Args[4]
+
+			var input struct {
+				BucketID    string `json:"bucket_id"`
+				ObjectKey   string `json:"object_key"`
+				ContentType string `json:"content_type"`
+			}
+			if err := json.Unmarshal([]byte(payload), &input); err != nil {
+				log.Fatalf("Invalid JSON payload for upload: %v", err)
+			}
+
+			file, err := os.Open(filePath)
+			if err != nil {
+				log.Fatalf("Failed to open local file: %v", err)
+			}
+			defer file.Close()
+
+			obj, err := svc.Upload(ctx, input.BucketID, input.ObjectKey, input.ContentType, file)
+			if err != nil {
+				log.Fatalf("Failed to upload object: %v", err)
+			}
+			printJSON(obj)
+
+		case "download":
+			if len(os.Args) < 5 {
+				log.Fatal("Destination path argument is required for download. Usage: cistern objects download '<id_or_json>' <destination_path>")
+			}
+			destPath := os.Args[4]
+
+			id := extractID(payload)
+			if id == "" {
+				log.Fatal("Object ID cannot be empty")
+			}
+
+			_, reader, err := svc.Download(ctx, id)
+			if err != nil {
+				log.Fatalf("Failed to download object: %v", err)
+			}
+			defer reader.Close()
+
+			destDir := filepath.Dir(destPath)
+			if err := os.MkdirAll(destDir, 0755); err != nil {
+				log.Fatalf("Failed to create destination directories: %v", err)
+			}
+
+			destFile, err := os.Create(destPath)
+			if err != nil {
+				log.Fatalf("Failed to create destination file: %v", err)
+			}
+			defer destFile.Close()
+
+			if _, err := io.Copy(destFile, reader); err != nil {
+				log.Fatalf("Failed to write downloaded content: %v", err)
+			}
+
+			fmt.Printf(`{"status":"success","downloaded_id":%q,"path":%q}`+"\n", id, destPath)
+
+		case "read":
+			id := extractID(payload)
+			if id == "" {
+				log.Fatal("Object ID cannot be empty")
+			}
+
+			obj, err := svc.Get(ctx, id)
+			if err != nil {
+				log.Fatalf("Failed to retrieve object: %v", err)
+			}
+			if obj == nil {
+				log.Fatalf("Object not found: %s", id)
+			}
+			printJSON(obj)
+
+		case "delete":
+			id := extractID(payload)
+			if id == "" {
+				log.Fatal("Object ID cannot be empty")
+			}
+
+			err := svc.Delete(ctx, id)
+			if err != nil {
+				log.Fatalf("Failed to delete object: %v", err)
+			}
+			fmt.Printf(`{"status":"success","deleted_id":%q}`+"\n", id)
+
+		case "list":
+			bucketID := extractID(payload)
+			if bucketID == "" {
+				var input struct {
+					BucketID string `json:"bucket_id"`
+				}
+				if err := json.Unmarshal([]byte(payload), &input); err == nil {
+					bucketID = input.BucketID
+				}
+			}
+			if bucketID == "" {
+				log.Fatal("Bucket ID cannot be empty")
+			}
+
+			list, err := svc.ListByBucket(ctx, bucketID)
+			if err != nil {
+				log.Fatalf("Failed to list objects: %v", err)
+			}
+			printJSON(list)
+
+		default:
+			printUsageAndExit()
+		}
 	}
 }
 
@@ -223,6 +352,11 @@ func printUsageAndExit() {
 	fmt.Println("  cistern buckets edit '<json_payload>'     (e.g., '{\"id\": \"uuid\", \"bucket_key\": \"new-key\", \"owner_id\": \"client-uuid\"}')")
 	fmt.Println("  cistern buckets update '<json_payload>'   (e.g., '{\"id\": \"uuid\", \"bucket_key\": \"new-key\", \"owner_id\": \"client-uuid\"}')")
 	fmt.Println("  cistern buckets delete '<id_or_json>'     (e.g., 'some-uuid-here' or '{\"id\": \"some-uuid\"}')")
+	fmt.Println("  cistern objects upload '<json_payload>' <filepath> (e.g., '{\"bucket_id\": \"uuid\", \"object_key\": \"notes.txt\"}' /path/to/file.txt)")
+	fmt.Println("  cistern objects read '<id_or_json>'                (e.g., 'some-uuid-here')")
+	fmt.Println("  cistern objects download '<id_or_json>' <dest_path> (e.g., 'some-uuid-here' ./downloaded.txt)")
+	fmt.Println("  cistern objects delete '<id_or_json>'              (e.g., 'some-uuid-here')")
+	fmt.Println("  cistern objects list '<bucket_id_or_json>'         (e.g., 'bucket-uuid-here')")
 	os.Exit(1)
 }
 
