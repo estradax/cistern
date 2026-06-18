@@ -489,13 +489,14 @@ paths:
       summary: Update a client
       tags:
       - clients
-  /objects/{id}:
+  /objects/{key}:
     delete:
-      description: Delete an object's metadata and its physical storage by ID
+      description: Delete an object's metadata and its physical storage by object
+        key
       parameters:
-      - description: Object ID
+      - description: Object Key
         in: path
-        name: id
+        name: key
         required: true
         type: string
       produces:
@@ -515,11 +516,11 @@ paths:
       tags:
       - objects
     get:
-      description: Get metadata of an object by its unique ID
+      description: Get metadata of an object by its unique object key
       parameters:
-      - description: Object ID
+      - description: Object Key
         in: path
-        name: id
+        name: key
         required: true
         type: string
       produces:
@@ -540,13 +541,13 @@ paths:
       summary: Get object metadata
       tags:
       - objects
-  /objects/{id}/download:
+  /objects/{key}/download:
     get:
-      description: Download the raw payload of an object by its unique ID
+      description: Download the raw payload of an object by its unique object key
       parameters:
-      - description: Object ID
+      - description: Object Key
         in: path
-        name: id
+        name: key
         required: true
         type: string
       produces:

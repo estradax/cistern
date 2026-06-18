@@ -84,6 +84,21 @@ func (r *Repository) GetByBucketAndKey(ctx context.Context, bucketID string, key
 	return &obj, nil
 }
 
+func (r *Repository) GetByKey(ctx context.Context, key string) (*Object, error) {
+	var obj Object
+	query := `SELECT id, bucket_id, object_key, size, content_type, etag, storage_path, created_at, updated_at 
+	          FROM objects WHERE object_key = ?`
+	err := r.db.GetContext(ctx, &obj, query, key)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &obj, nil
+}
+
+
 func (r *Repository) Delete(ctx context.Context, id string) error {
 	if id == "" {
 		return errors.New("object ID cannot be empty")

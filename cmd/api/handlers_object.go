@@ -65,21 +65,21 @@ func (s *Server) UploadObject(c fiber.Ctx) error {
 }
 
 // @Summary Get object metadata
-// @Description Get metadata of an object by its unique ID
+// @Description Get metadata of an object by its unique object key
 // @Tags objects
 // @Produce json
-// @Param id path string true "Object ID"
+// @Param key path string true "Object Key"
 // @Success 200 {object} object.Object
 // @Failure 404 {object} APIError
 // @Failure 500 {object} APIError
-// @Router /objects/{id} [get]
+// @Router /objects/{key} [get]
 func (s *Server) GetObject(c fiber.Ctx) error {
-	id := c.Params("id")
-	if id == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing object ID"})
+	key := c.Params("*")
+	if key == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing object key"})
 	}
 
-	obj, err := s.objService.Get(c.Context(), id)
+	obj, err := s.objService.GetByKey(c.Context(), key)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(APIError{Error: err.Error()})
 	}
@@ -91,21 +91,21 @@ func (s *Server) GetObject(c fiber.Ctx) error {
 }
 
 // @Summary Download object content
-// @Description Download the raw payload of an object by its unique ID
+// @Description Download the raw payload of an object by its unique object key
 // @Tags objects
 // @Produce octet-stream
-// @Param id path string true "Object ID"
+// @Param key path string true "Object Key"
 // @Success 200 {file} file
 // @Failure 404 {object} APIError
 // @Failure 500 {object} APIError
-// @Router /objects/{id}/download [get]
+// @Router /objects/{key}/download [get]
 func (s *Server) DownloadObject(c fiber.Ctx) error {
-	id := c.Params("id")
-	if id == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing object ID"})
+	key := c.Params("*")
+	if key == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing object key"})
 	}
 
-	obj, reader, err := s.objService.Download(c.Context(), id)
+	obj, reader, err := s.objService.DownloadByKey(c.Context(), key)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(APIError{Error: err.Error()})
 	}
@@ -120,21 +120,21 @@ func (s *Server) DownloadObject(c fiber.Ctx) error {
 }
 
 // @Summary Delete an object
-// @Description Delete an object's metadata and its physical storage by ID
+// @Description Delete an object's metadata and its physical storage by object key
 // @Tags objects
 // @Produce json
-// @Param id path string true "Object ID"
+// @Param key path string true "Object Key"
 // @Success 204 "No Content"
 // @Failure 400 {object} APIError
 // @Failure 500 {object} APIError
-// @Router /objects/{id} [delete]
+// @Router /objects/{key} [delete]
 func (s *Server) DeleteObject(c fiber.Ctx) error {
-	id := c.Params("id")
-	if id == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing object ID"})
+	key := c.Params("*")
+	if key == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing object key"})
 	}
 
-	if err := s.objService.Delete(c.Context(), id); err != nil {
+	if err := s.objService.DeleteByKey(c.Context(), key); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(APIError{Error: err.Error()})
 	}
 

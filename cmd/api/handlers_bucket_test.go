@@ -114,7 +114,7 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		t.Errorf("Mismatch in uploaded object: %+v", obj)
 	}
 
-	req = httptest.NewRequest("GET", "/api/v1/objects/"+obj.ID, nil)
+	req = httptest.NewRequest("GET", "/api/v1/objects/"+obj.ObjectKey, nil)
 	resp, err = env.App.Test(req)
 	if err != nil {
 		t.Fatalf("Failed to perform request: %v", err)
@@ -148,7 +148,7 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		t.Errorf("Expected list containing 1 object, got: %+v", list)
 	}
 
-	req = httptest.NewRequest("GET", "/api/v1/objects/"+obj.ID+"/download", nil)
+	req = httptest.NewRequest("GET", "/api/v1/objects/"+obj.ObjectKey+"/download", nil)
 	resp, err = env.App.Test(req)
 	if err != nil {
 		t.Fatalf("Failed to perform request: %v", err)
@@ -164,7 +164,7 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		t.Errorf("Expected downloaded content 'Hello, this is my note content.', got %q", string(dlContent))
 	}
 
-	req = httptest.NewRequest("DELETE", "/api/v1/objects/"+obj.ID, nil)
+	req = httptest.NewRequest("DELETE", "/api/v1/objects/"+obj.ObjectKey, nil)
 	resp, err = env.App.Test(req)
 	if err != nil {
 		t.Fatalf("Failed to perform request: %v", err)
@@ -173,7 +173,7 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		t.Errorf("Expected status 204, got %d", resp.StatusCode)
 	}
 
-	req = httptest.NewRequest("GET", "/api/v1/objects/"+obj.ID, nil)
+	req = httptest.NewRequest("GET", "/api/v1/objects/"+obj.ObjectKey, nil)
 	resp, err = env.App.Test(req)
 	if err != nil {
 		t.Fatalf("Failed to perform request: %v", err)

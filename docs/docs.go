@@ -603,9 +603,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/objects/{id}": {
+        "/objects/{key}": {
             "get": {
-                "description": "Get metadata of an object by its unique ID",
+                "description": "Get metadata of an object by its unique object key",
                 "produces": [
                     "application/json"
                 ],
@@ -616,8 +616,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Object ID",
-                        "name": "id",
+                        "description": "Object Key",
+                        "name": "key",
                         "in": "path",
                         "required": true
                     }
@@ -644,7 +644,7 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Delete an object's metadata and its physical storage by ID",
+                "description": "Delete an object's metadata and its physical storage by object key",
                 "produces": [
                     "application/json"
                 ],
@@ -655,8 +655,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Object ID",
-                        "name": "id",
+                        "description": "Object Key",
+                        "name": "key",
                         "in": "path",
                         "required": true
                     }
@@ -680,9 +680,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/objects/{id}/download": {
+        "/objects/{key}/download": {
             "get": {
-                "description": "Download the raw payload of an object by its unique ID",
+                "description": "Download the raw payload of an object by its unique object key",
                 "produces": [
                     "application/octet-stream"
                 ],
@@ -693,8 +693,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Object ID",
-                        "name": "id",
+                        "description": "Object Key",
+                        "name": "key",
                         "in": "path",
                         "required": true
                     }

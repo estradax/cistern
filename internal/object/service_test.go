@@ -100,9 +100,20 @@ func TestObjectServiceAndRepository(t *testing.T) {
 		t.Errorf("expected object ID %s, got %s", obj.ID, retrievedObjByKey.ID)
 	}
 
-	meta, reader, err := service.Download(ctx, obj.ID)
+	retrievedObjByGlobalKey, err := service.GetByKey(ctx, objectKey)
 	if err != nil {
-		t.Fatalf("failed to download object: %v", err)
+		t.Fatalf("failed to get object by global key: %v", err)
+	}
+	if retrievedObjByGlobalKey == nil {
+		t.Fatal("expected object to be retrieved by global key, got nil")
+	}
+	if retrievedObjByGlobalKey.ID != obj.ID {
+		t.Errorf("expected object ID %s, got %s", obj.ID, retrievedObjByGlobalKey.ID)
+	}
+
+	meta, reader, err := service.DownloadByKey(ctx, objectKey)
+	if err != nil {
+		t.Fatalf("failed to download object by key: %v", err)
 	}
 	defer reader.Close()
 
@@ -128,12 +139,12 @@ func TestObjectServiceAndRepository(t *testing.T) {
 		t.Errorf("listed object ID mismatch: expected %s, got %s", obj.ID, list[0].ID)
 	}
 
-	err = service.Delete(ctx, obj.ID)
+	err = service.DeleteByKey(ctx, objectKey)
 	if err != nil {
-		t.Fatalf("failed to delete object: %v", err)
+		t.Fatalf("failed to delete object by key: %v", err)
 	}
 
-	deletedObj, err := service.Get(ctx, obj.ID)
+	deletedObj, err := service.GetByKey(ctx, objectKey)
 	if err != nil {
 		t.Fatalf("error checking object deletion: %v", err)
 	}
@@ -141,7 +152,7 @@ func TestObjectServiceAndRepository(t *testing.T) {
 		t.Error("expected object database record to be deleted, but it still exists")
 	}
 
-	_, _, err = service.Download(ctx, obj.ID)
+	_, _, err = service.DownloadByKey(ctx, objectKey)
 	if err == nil {
 		t.Error("expected download of deleted object to fail, but it succeeded")
 	}
