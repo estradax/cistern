@@ -245,13 +245,51 @@ err = svc.Delete(ctx, "object-uuid")
 
 ## 7. Running Tests
 
-To run database-backed unit and integration tests:
-
+### A. Running Tests CLI
+To run the full suite of unit and integration tests, run:
 ```bash
 make test
-# OR
-go test -v ./...
+```
+*(This is a convenience command that executes `go test -v ./...` under the hood).*
+
+To run tests for a specific package only:
+```bash
+go test -v ./internal/client
 ```
 
-The testing harness automatically loads `.env.testing`, initializes database schemas using the latest migrations under `db/migrations/`, and ensures a clean isolated database state for each test suite run.
+### B. Requirements & Environment
+* **MySQL Server**: A running MySQL server must be active and accessible at the host/port specified in `.env.testing`.
+* **Testing Configuration (`.env.testing`)**: Holds the baseline connection DSN and storage folder details. Example:
+  ```env
+  DB_DSN=root:12345678@tcp(127.0.0.1:3306)/cistern_test?parseTime=true&multiStatements=true
+  STORAGE_DIR=./data/storage
+  ```
+
+### C. Testing Harness & Isolation Strategy (`internal/testutil`)
+The database-backed tests leverage a helper package located at [internal/testutil/testutil.go](file:///Users/hansel/project/cistern/internal/testutil/testutil.go) to ensure test isolation:
+
+1. **Dynamic Database Isolation**:
+   To support package-level isolation (preventing parallel execution conflicts), [SetupTestDB](file:///Users/hansel/project/cistern/internal/testutil/testutil.go#L34) reads `DB_DSN` from `.env.testing` and appends the package name of the test being run to the database name (e.g., `cistern_test_client`, `cistern_test_apikey`).
+2. **Dynamic Database Schema Setup**:
+   For each test suite run, the harness dynamically drops the package-specific test database if it already exists, recreates it, and runs all schema migrations located in the `db/migrations/` directory.
+3. **Database Cleanup**:
+   Use [CleanDatabase](file:///Users/hansel/project/cistern/internal/testutil/testutil.go#L113) to truncate tables between test runs (disabling and re-enabling foreign key checks) to maintain an isolated database state.
+
+#### Usage Example in Tests:
+```go
+import "github.com/estradax/cistern/internal/testutil"
+
+func TestMyRepository(t *testing.T) {
+	// Setup isolated test database and apply migrations
+	db := testutil.SetupTestDB(t)
+	defer db.Close()
+
+	t.Run("my subtest", func(t *testing.T) {
+		// Clean tables before each subtest to ensure clean state
+		testutil.CleanDatabase(t, db)
+		
+		// Execute test assertions here...
+	})
+}
+```
 
