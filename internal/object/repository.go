@@ -2,8 +2,11 @@ package object
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
 	"errors"
+	"math/big"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,6 +23,33 @@ func NewRepository(db *sqlx.DB) *Repository {
 	}
 }
 
+const alphanumeric = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+func generateRandomSuffix(length int) string {
+	b := make([]byte, length)
+	for i := 0; i < length; i++ {
+		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(alphanumeric))))
+		if err != nil {
+			b[i] = alphanumeric[time.Now().UnixNano()%int64(len(alphanumeric))]
+		} else {
+			b[i] = alphanumeric[num.Int64()]
+		}
+	}
+	return string(b)
+}
+
+func TransformObjectKey(key string) string {
+	var sb strings.Builder
+	for _, r := range key {
+		if r == ' ' {
+			sb.WriteRune('-')
+		} else if r >= 0 && r <= 127 {
+			sb.WriteRune(r)
+		}
+	}
+	return sb.String() + generateRandomSuffix(5)
+}
+
 func (r *Repository) Create(ctx context.Context, input CreateObjectInput) (*Object, error) {
 	if input.BucketID == "" {
 		return nil, errors.New("bucket ID cannot be empty")
@@ -27,7 +57,9 @@ func (r *Repository) Create(ctx context.Context, input CreateObjectInput) (*Obje
 	if input.ObjectKey == "" {
 		return nil, errors.New("object key cannot be empty")
 	}
-	if len(input.ObjectKey) > 500 {
+
+	transformedKey := TransformObjectKey(input.ObjectKey)
+	if len(transformedKey) > 500 {
 		return nil, errors.New("object key length cannot exceed 500 characters")
 	}
 	if input.StoragePath == "" {
@@ -37,7 +69,7 @@ func (r *Repository) Create(ctx context.Context, input CreateObjectInput) (*Obje
 	obj := &Object{
 		ID:          uuid.New().String(),
 		BucketID:    input.BucketID,
-		ObjectKey:   input.ObjectKey,
+		ObjectKey:   transformedKey,
 		Size:        input.Size,
 		ContentType: input.ContentType,
 		ETag:        input.ETag,

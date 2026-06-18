@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/estradax/cistern/internal/bucket"
@@ -65,8 +66,9 @@ func TestObjectServiceAndRepository(t *testing.T) {
 	if obj.BucketID != b.ID {
 		t.Errorf("expected bucket ID %s, got %s", b.ID, obj.BucketID)
 	}
-	if obj.ObjectKey != objectKey {
-		t.Errorf("expected key %s, got %s", objectKey, obj.ObjectKey)
+	// Verify key transformation: all ASCII, spaces changed to '-', random 5-char suffix at the end.
+	if !strings.HasPrefix(obj.ObjectKey, "documents/notes.txt") || len(obj.ObjectKey) != len("documents/notes.txt")+5 {
+		t.Errorf("expected key to have prefix %q and suffix of 5 characters, got %q", "documents/notes.txt", obj.ObjectKey)
 	}
 	if obj.Size != int64(len(content)) {
 		t.Errorf("expected size %d, got %d", len(content), obj.Size)
@@ -85,11 +87,11 @@ func TestObjectServiceAndRepository(t *testing.T) {
 	if retrievedObj == nil {
 		t.Fatal("expected object to be retrieved, got nil")
 	}
-	if retrievedObj.ObjectKey != objectKey {
-		t.Errorf("expected key %s, got %s", objectKey, retrievedObj.ObjectKey)
+	if retrievedObj.ObjectKey != obj.ObjectKey {
+		t.Errorf("expected key %s, got %s", obj.ObjectKey, retrievedObj.ObjectKey)
 	}
 
-	retrievedObjByKey, err := service.GetByBucketAndKey(ctx, b.ID, objectKey)
+	retrievedObjByKey, err := service.GetByBucketAndKey(ctx, b.ID, obj.ObjectKey)
 	if err != nil {
 		t.Fatalf("failed to get object by key: %v", err)
 	}
@@ -100,7 +102,7 @@ func TestObjectServiceAndRepository(t *testing.T) {
 		t.Errorf("expected object ID %s, got %s", obj.ID, retrievedObjByKey.ID)
 	}
 
-	retrievedObjByGlobalKey, err := service.GetByKey(ctx, objectKey)
+	retrievedObjByGlobalKey, err := service.GetByKey(ctx, obj.ObjectKey)
 	if err != nil {
 		t.Fatalf("failed to get object by global key: %v", err)
 	}
@@ -111,7 +113,7 @@ func TestObjectServiceAndRepository(t *testing.T) {
 		t.Errorf("expected object ID %s, got %s", obj.ID, retrievedObjByGlobalKey.ID)
 	}
 
-	meta, reader, err := service.DownloadByKey(ctx, objectKey)
+	meta, reader, err := service.DownloadByKey(ctx, obj.ObjectKey)
 	if err != nil {
 		t.Fatalf("failed to download object by key: %v", err)
 	}
@@ -139,12 +141,23 @@ func TestObjectServiceAndRepository(t *testing.T) {
 		t.Errorf("listed object ID mismatch: expected %s, got %s", obj.ID, list[0].ID)
 	}
 
-	err = service.DeleteByKey(ctx, objectKey)
+	// Test uploading with spaces and non-ASCII characters
+	objectKeyWithSpaces := "my cool note 🌏.txt"
+	obj2, err := service.Upload(ctx, b.ID, objectKeyWithSpaces, contentType, bytes.NewReader(content))
+	if err != nil {
+		t.Fatalf("failed to upload object with spaces/non-ASCII: %v", err)
+	}
+	expectedPrefix := "my-cool-note-.txt"
+	if !strings.HasPrefix(obj2.ObjectKey, expectedPrefix) || len(obj2.ObjectKey) != len(expectedPrefix)+5 {
+		t.Errorf("expected transformed key prefix %q and suffix of length 5, got %q", expectedPrefix, obj2.ObjectKey)
+	}
+
+	err = service.DeleteByKey(ctx, obj.ObjectKey)
 	if err != nil {
 		t.Fatalf("failed to delete object by key: %v", err)
 	}
 
-	deletedObj, err := service.GetByKey(ctx, objectKey)
+	deletedObj, err := service.GetByKey(ctx, obj.ObjectKey)
 	if err != nil {
 		t.Fatalf("error checking object deletion: %v", err)
 	}
@@ -152,7 +165,7 @@ func TestObjectServiceAndRepository(t *testing.T) {
 		t.Error("expected object database record to be deleted, but it still exists")
 	}
 
-	_, _, err = service.DownloadByKey(ctx, objectKey)
+	_, _, err = service.DownloadByKey(ctx, obj.ObjectKey)
 	if err == nil {
 		t.Error("expected download of deleted object to fail, but it succeeded")
 	}

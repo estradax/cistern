@@ -7,6 +7,8 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/estradax/cistern/internal/bucket"
@@ -110,7 +112,7 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 	if err := json.NewDecoder(resp.Body).Decode(&obj); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
-	if obj.ObjectKey != "documents/notes.txt" || obj.BucketID != b.ID {
+	if !strings.HasPrefix(obj.ObjectKey, "documents/notes.txt") || len(obj.ObjectKey) != len("documents/notes.txt")+5 || obj.BucketID != b.ID {
 		t.Errorf("Mismatch in uploaded object: %+v", obj)
 	}
 
@@ -158,8 +160,9 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
 	}
 	cd := resp.Header.Get("Content-Disposition")
-	if cd != `inline; filename="notes.txt"` {
-		t.Errorf("Expected Content-Disposition to be 'inline; filename=\"notes.txt\"', got %q", cd)
+	expectedFilename := filepath.Base(obj.ObjectKey)
+	if cd != `inline; filename="`+expectedFilename+`"` {
+		t.Errorf("Expected Content-Disposition to be 'inline; filename=\"%s\"', got %q", expectedFilename, cd)
 	}
 	dlContent, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -179,8 +182,8 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
 	}
 	cdAttachment := resp.Header.Get("Content-Disposition")
-	if cdAttachment != `attachment; filename="notes.txt"` {
-		t.Errorf("Expected Content-Disposition to be 'attachment; filename=\"notes.txt\"', got %q", cdAttachment)
+	if cdAttachment != `attachment; filename="`+expectedFilename+`"` {
+		t.Errorf("Expected Content-Disposition to be 'attachment; filename=\"%s\"', got %q", expectedFilename, cdAttachment)
 	}
 
 	// Test GET /objects/{key}?content_disposition=attachment (alternative snake_case param name)
@@ -193,8 +196,8 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
 	}
 	cdAttachment2 := resp.Header.Get("Content-Disposition")
-	if cdAttachment2 != `attachment; filename="notes.txt"` {
-		t.Errorf("Expected Content-Disposition to be 'attachment; filename=\"notes.txt\"', got %q", cdAttachment2)
+	if cdAttachment2 != `attachment; filename="`+expectedFilename+`"` {
+		t.Errorf("Expected Content-Disposition to be 'attachment; filename=\"%s\"', got %q", expectedFilename, cdAttachment2)
 	}
 
 	req = httptest.NewRequest("DELETE", "/api/v1/objects/"+obj.ObjectKey, nil)
