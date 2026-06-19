@@ -213,35 +213,35 @@ func TestObjectServiceAndRepository(t *testing.T) {
 			t.Error("expected signature verification to fail for expired timestamp")
 		}
 
-		if service.VerifyPresignedURL("PUT", bucketKey, objectKey, expires, sig) {
+		if service.VerifyPresignedURL("POST", bucketKey, objectKey, expires, sig) {
 			t.Error("expected signature verification to fail for mismatched method")
 		}
 
 		
-		putURLStr, err := service.GeneratePresignedURL(baseURL, "PUT", bucketKey, objectKey, expiresIn)
+		postURLStr, err := service.GeneratePresignedURL(baseURL, "POST", bucketKey, objectKey, expiresIn)
 		if err != nil {
-			t.Fatalf("failed to generate PUT presigned URL: %v", err)
+			t.Fatalf("failed to generate POST presigned URL: %v", err)
 		}
 
-		parsedPutURL, err := url.Parse(putURLStr)
+		parsedPostURL, err := url.Parse(postURLStr)
 		if err != nil {
-			t.Fatalf("failed to parse PUT URL: %v", err)
+			t.Fatalf("failed to parse POST URL: %v", err)
 		}
 
-		qPut := parsedPutURL.Query()
-		putExpiresStr := qPut.Get("expires")
-		putSig := qPut.Get("signature")
-		putBucketKey := qPut.Get("bucket_key")
+		qPost := parsedPostURL.Query()
+		postExpiresStr := qPost.Get("expires")
+		postSig := qPost.Get("signature")
+		postBucketKey := qPost.Get("bucket_key")
 
-		if putBucketKey != bucketKey {
-			t.Errorf("expected bucket_key query param %q, got %q", bucketKey, putBucketKey)
+		if postBucketKey != bucketKey {
+			t.Errorf("expected bucket_key query param %q, got %q", bucketKey, postBucketKey)
 		}
 
-		var putExpires int64
-		_, _ = fmt.Sscan(putExpiresStr, &putExpires)
+		var postExpires int64
+		_, _ = fmt.Sscan(postExpiresStr, &postExpires)
 
-		if !service.VerifyPresignedURL("PUT", bucketKey, objectKey, putExpires, putSig) {
-			t.Error("expected valid PUT presigned URL signature to verify successfully")
+		if !service.VerifyPresignedURL("POST", bucketKey, objectKey, postExpires, postSig) {
+			t.Error("expected valid POST presigned URL signature to verify successfully")
 		}
 	})
 }

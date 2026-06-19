@@ -165,7 +165,7 @@ func (s *Service) GeneratePresignedURL(baseURL, method, bucketKey, objectKey str
 	u.Path = fmt.Sprintf("/api/v1/presigned/objects/%s", objectKey)
 
 	q := u.Query()
-	if method == "PUT" {
+	if method == "POST" {
 		q.Set("bucket_key", bucketKey)
 	}
 	q.Set("expires", fmt.Sprintf("%d", expires))

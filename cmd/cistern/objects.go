@@ -159,11 +159,11 @@ func handleObjects(ctx context.Context, db *sqlx.DB, action, payload string, ext
 		if input.Method == "" {
 			input.Method = "GET"
 		}
-		if input.Method != "GET" && input.Method != "PUT" {
-			return fmt.Errorf("invalid method: only GET and PUT are supported")
+		if input.Method != "GET" && input.Method != "POST" {
+			return fmt.Errorf("invalid method: only GET and POST are supported")
 		}
-		if input.Method == "PUT" && input.BucketKey == "" {
-			return fmt.Errorf("bucket_key is required for PUT method")
+		if input.Method == "POST" && input.BucketKey == "" {
+			return fmt.Errorf("bucket_key is required for POST method")
 		}
 
 		baseURL := os.Getenv("BASE_URL")

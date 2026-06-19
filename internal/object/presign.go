@@ -11,8 +11,8 @@ import (
 
 func GenerateSignature(secret, method, bucketKey, objectKey string, expires int64) string {
 	var message string
-	if method == "PUT" {
-		message = fmt.Sprintf("PUT\n%s\n%s\n%d", bucketKey, objectKey, expires)
+	if method == "POST" {
+		message = fmt.Sprintf("POST\n%s\n%s\n%d", bucketKey, objectKey, expires)
 	} else {
 		message = fmt.Sprintf("GET\n%s\n%d", objectKey, expires)
 	}

@@ -301,16 +301,16 @@ func (s *Server) GeneratePresignedURL(c fiber.Ctx) error {
 	if input.Method == "" {
 		input.Method = "GET"
 	}
-	if input.Method != "GET" && input.Method != "PUT" {
-		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "invalid method: only GET and PUT are supported"})
+	if input.Method != "GET" && input.Method != "POST" {
+		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "invalid method: only GET and POST are supported"})
 	}
 
 	clientID := c.Locals("client_id").(string)
 
 	var bucketKey string
-	if input.Method == "PUT" {
+	if input.Method == "POST" {
 		if input.BucketKey == "" {
-			return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "bucket_key is required for PUT method"})
+			return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "bucket_key is required for POST method"})
 		}
 		bucketKey = input.BucketKey
 		
@@ -357,7 +357,7 @@ func (s *Server) GeneratePresignedURL(c fiber.Ctx) error {
 
 // @Summary Download object using presigned URL
 // @Description Retrieve object content without headers by verifying the signature and expiration parameter.
-// @Tags objects
+// @Tags presigned
 // @Produce octet-stream
 // @Param key path string true "Object Key"
 // @Param expires query int true "Expires timestamp"
@@ -413,7 +413,7 @@ func (s *Server) GetPresignedObjectContent(c fiber.Ctx) error {
 
 // @Summary Upload object using presigned URL
 // @Description Upload object content without headers by verifying the signature and expiration parameter.
-// @Tags objects
+// @Tags presigned
 // @Accept octet-stream
 // @Produce json
 // @Param key path string true "Object Key"
@@ -424,7 +424,7 @@ func (s *Server) GetPresignedObjectContent(c fiber.Ctx) error {
 // @Failure 400 {object} APIError
 // @Failure 430 {object} APIError
 // @Failure 500 {object} APIError
-// @Router /presigned/objects/{key} [put]
+// @Router /presigned/objects/{key} [post]
 func (s *Server) UploadPresignedObjectContent(c fiber.Ctx) error {
 	key, err := url.PathUnescape(c.Params("*"))
 	if err != nil {
@@ -446,7 +446,7 @@ func (s *Server) UploadPresignedObjectContent(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "invalid expires parameter"})
 	}
 
-	if !s.objService.VerifyPresignedURL("PUT", bucketKey, key, expires, signature) {
+	if !s.objService.VerifyPresignedURL("POST", bucketKey, key, expires, signature) {
 		return c.Status(fiber.StatusForbidden).JSON(APIError{Error: "invalid or expired presigned URL"})
 	}
 

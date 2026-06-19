@@ -987,7 +987,7 @@ const docTemplate = `{
                     "application/octet-stream"
                 ],
                 "tags": [
-                    "objects"
+                    "presigned"
                 ],
                 "summary": "Download object using presigned URL",
                 "parameters": [
@@ -1046,7 +1046,7 @@ const docTemplate = `{
                     }
                 }
             },
-            "put": {
+            "post": {
                 "description": "Upload object content without headers by verifying the signature and expiration parameter.",
                 "consumes": [
                     "application/octet-stream"
@@ -1055,7 +1055,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "objects"
+                    "presigned"
                 ],
                 "summary": "Upload object using presigned URL",
                 "parameters": [

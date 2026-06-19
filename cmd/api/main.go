@@ -94,7 +94,7 @@ func main() {
 
 	
 	api.Get("/presigned/objects/*", server.GetPresignedObjectContent)
-	api.Put("/presigned/objects/*", server.UploadPresignedObjectContent)
+	api.Post("/presigned/objects/*", server.UploadPresignedObjectContent)
 
 	auth := api.Group("", server.AuthMiddleware)
 

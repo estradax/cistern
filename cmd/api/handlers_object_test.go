@@ -158,9 +158,9 @@ func TestObjectHandlersAndPresignedURLs(t *testing.T) {
 	})
 
 	
-	t.Run("Generate Presigned PUT URL and Upload Content", func(t *testing.T) {
+	t.Run("Generate Presigned POST URL and Upload Content", func(t *testing.T) {
 		objectKey := "uploads/presigned-file.txt"
-		presignReqBody := `{"method": "PUT", "expires_in": 60, "bucket_key": "test-bucket"}`
+		presignReqBody := `{"method": "POST", "expires_in": 60, "bucket_key": "test-bucket"}`
 		reqPresign := httptest.NewRequest("POST", "/api/v1/objects/"+url.PathEscape(objectKey)+"/presign", bytes.NewBufferString(presignReqBody))
 		reqPresign.Header.Set("Content-Type", "application/json")
 		setAuthHeaders(reqPresign)
@@ -170,7 +170,7 @@ func TestObjectHandlersAndPresignedURLs(t *testing.T) {
 			t.Fatalf("failed to request presigned URL: %v", err)
 		}
 		if respPresign.StatusCode != http.StatusOK {
-			t.Fatalf("Expected status 200 for presigned PUT generation, got %d", respPresign.StatusCode)
+			t.Fatalf("Expected status 200 for presigned POST generation, got %d", respPresign.StatusCode)
 		}
 
 		var presignResult map[string]string
@@ -185,19 +185,19 @@ func TestObjectHandlersAndPresignedURLs(t *testing.T) {
 		}
 
 		
-		uploadContent := "This content is uploaded directly via PUT presigned URL!"
-		reqPut := httptest.NewRequest("PUT", parsed.RequestURI(), bytes.NewBufferString(uploadContent))
-		reqPut.Header.Set("Content-Type", "text/plain")
-		respPut, err := env.App.Test(reqPut)
+		uploadContent := "This content is uploaded directly via POST presigned URL!"
+		reqPost := httptest.NewRequest("POST", parsed.RequestURI(), bytes.NewBufferString(uploadContent))
+		reqPost.Header.Set("Content-Type", "text/plain")
+		respPost, err := env.App.Test(reqPost)
 		if err != nil {
-			t.Fatalf("failed to execute PUT upload: %v", err)
+			t.Fatalf("failed to execute POST upload: %v", err)
 		}
-		if respPut.StatusCode != http.StatusCreated {
-			t.Fatalf("expected PUT upload status 201, got %d", respPut.StatusCode)
+		if respPost.StatusCode != http.StatusCreated {
+			t.Fatalf("expected POST upload status 201, got %d", respPost.StatusCode)
 		}
 
 		var uploadedObj object.Object
-		if err := json.NewDecoder(respPut.Body).Decode(&uploadedObj); err != nil {
+		if err := json.NewDecoder(respPost.Body).Decode(&uploadedObj); err != nil {
 			t.Fatalf("failed to decode upload response: %v", err)
 		}
 

@@ -985,7 +985,7 @@
                     "application/octet-stream"
                 ],
                 "tags": [
-                    "objects"
+                    "presigned"
                 ],
                 "summary": "Download object using presigned URL",
                 "parameters": [
@@ -1044,7 +1044,7 @@
                     }
                 }
             },
-            "put": {
+            "post": {
                 "description": "Upload object content without headers by verifying the signature and expiration parameter.",
                 "consumes": [
                     "application/octet-stream"
@@ -1053,7 +1053,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "objects"
+                    "presigned"
                 ],
                 "summary": "Upload object using presigned URL",
                 "parameters": [
