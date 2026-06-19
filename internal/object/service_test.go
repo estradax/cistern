@@ -3,7 +3,9 @@ package object
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -35,7 +37,7 @@ func TestObjectServiceAndRepository(t *testing.T) {
 		t.Fatalf("failed to create storage driver: %v", err)
 	}
 
-	service := NewService(objRepo, store)
+	service := NewService(objRepo, store, "test-secret")
 	ctx := context.Background()
 
 	c, err := clientRepo.Create(ctx, client.CreateClientInput{Name: "Test Client"})
@@ -66,7 +68,7 @@ func TestObjectServiceAndRepository(t *testing.T) {
 	if obj.BucketID != b.ID {
 		t.Errorf("expected bucket ID %s, got %s", b.ID, obj.BucketID)
 	}
-	// Verify key transformation: all ASCII, spaces changed to '-', random 5-char suffix at the end.
+	
 	if !strings.HasPrefix(obj.ObjectKey, "documents/notes.txt") || len(obj.ObjectKey) != len("documents/notes.txt")+5 {
 		t.Errorf("expected key to have prefix %q and suffix of 5 characters, got %q", "documents/notes.txt", obj.ObjectKey)
 	}
@@ -141,7 +143,7 @@ func TestObjectServiceAndRepository(t *testing.T) {
 		t.Errorf("listed object ID mismatch: expected %s, got %s", obj.ID, list[0].ID)
 	}
 
-	// Test uploading with spaces and non-ASCII characters
+	
 	objectKeyWithSpaces := "my cool note 🌏.txt"
 	obj2, err := service.Upload(ctx, b.ID, objectKeyWithSpaces, contentType, bytes.NewReader(content))
 	if err != nil {
@@ -169,4 +171,77 @@ func TestObjectServiceAndRepository(t *testing.T) {
 	if err == nil {
 		t.Error("expected download of deleted object to fail, but it succeeded")
 	}
+
+	
+	t.Run("Presigned URL Signature Verification", func(t *testing.T) {
+		baseURL := "http://localhost:3000"
+		bucketKey := "test-bucket"
+		objectKey := "documents/notes.txt"
+		expiresIn := int64(60)
+
+		
+		getURLStr, err := service.GeneratePresignedURL(baseURL, "GET", "", objectKey, expiresIn)
+		if err != nil {
+			t.Fatalf("failed to generate GET presigned URL: %v", err)
+		}
+
+		
+		parsedURL, err := url.Parse(getURLStr)
+		if err != nil {
+			t.Fatalf("failed to parse generated URL: %v", err)
+		}
+		
+		q := parsedURL.Query()
+		expiresStr := q.Get("expires")
+		sig := q.Get("signature")
+		
+		var expires int64
+		_, err = fmt.Sscan(expiresStr, &expires)
+		if err != nil {
+			t.Fatalf("failed to parse expires timestamp: %v", err)
+		}
+
+		if !service.VerifyPresignedURL("GET", "", objectKey, expires, sig) {
+			t.Error("expected valid GET presigned URL signature to verify successfully")
+		}
+
+		if service.VerifyPresignedURL("GET", "", "other-key.txt", expires, sig) {
+			t.Error("expected signature verification to fail for mismatched object key")
+		}
+
+		if service.VerifyPresignedURL("GET", "", objectKey, expires-100, sig) {
+			t.Error("expected signature verification to fail for expired timestamp")
+		}
+
+		if service.VerifyPresignedURL("PUT", bucketKey, objectKey, expires, sig) {
+			t.Error("expected signature verification to fail for mismatched method")
+		}
+
+		
+		putURLStr, err := service.GeneratePresignedURL(baseURL, "PUT", bucketKey, objectKey, expiresIn)
+		if err != nil {
+			t.Fatalf("failed to generate PUT presigned URL: %v", err)
+		}
+
+		parsedPutURL, err := url.Parse(putURLStr)
+		if err != nil {
+			t.Fatalf("failed to parse PUT URL: %v", err)
+		}
+
+		qPut := parsedPutURL.Query()
+		putExpiresStr := qPut.Get("expires")
+		putSig := qPut.Get("signature")
+		putBucketKey := qPut.Get("bucket_key")
+
+		if putBucketKey != bucketKey {
+			t.Errorf("expected bucket_key query param %q, got %q", bucketKey, putBucketKey)
+		}
+
+		var putExpires int64
+		_, _ = fmt.Sscan(putExpiresStr, &putExpires)
+
+		if !service.VerifyPresignedURL("PUT", bucketKey, objectKey, putExpires, putSig) {
+			t.Error("expected valid PUT presigned URL signature to verify successfully")
+		}
+	})
 }

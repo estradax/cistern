@@ -26,13 +26,13 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 
 	testutil.CleanDatabase(t, env.DB)
 
-	// Create Client A
+	
 	cliA, err := env.ClientRepo.Create(fiber.NewDefaultCtx(nil).Context(), client.CreateClientInput{Name: "ClientA"})
 	if err != nil {
 		t.Fatalf("Failed to create client A: %v", err)
 	}
 
-	// Create API Key for Client A
+	
 	keyA, err := env.APIKeyRepo.Create(fiber.NewDefaultCtx(nil).Context(), apikey.CreateAPIKeyInput{
 		ClientID: cliA.ID,
 		Name:     nil,
@@ -41,13 +41,13 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		t.Fatalf("Failed to create API key for client A: %v", err)
 	}
 
-	// Create Client B
+	
 	cliB, err := env.ClientRepo.Create(fiber.NewDefaultCtx(nil).Context(), client.CreateClientInput{Name: "ClientB"})
 	if err != nil {
 		t.Fatalf("Failed to create client B: %v", err)
 	}
 
-	// Create API Key for Client B
+	
 	keyB, err := env.APIKeyRepo.Create(fiber.NewDefaultCtx(nil).Context(), apikey.CreateAPIKeyInput{
 		ClientID: cliB.ID,
 		Name:     nil,
@@ -56,7 +56,7 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		t.Fatalf("Failed to create API key for client B: %v", err)
 	}
 
-	// Helper for Client A requests
+	
 	sendReqA := func(method, path string, body io.Reader, contentType string) *http.Response {
 		req := httptest.NewRequest(method, path, body)
 		if contentType != "" {
@@ -71,7 +71,7 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		return resp
 	}
 
-	// Helper for Client B requests
+	
 	sendReqB := func(method, path string, body io.Reader, contentType string) *http.Response {
 		req := httptest.NewRequest(method, path, body)
 		if contentType != "" {
@@ -86,7 +86,7 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		return resp
 	}
 
-	// 1. Test Auth Middleware (Missing keys)
+	
 	{
 		req := httptest.NewRequest("GET", "/api/v1/buckets/some-bucket", nil)
 		resp, err := env.App.Test(req)
@@ -98,7 +98,7 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		}
 	}
 
-	// 2. Test Auth Middleware (Invalid keys)
+	
 	{
 		req := httptest.NewRequest("GET", "/api/v1/buckets/some-bucket", nil)
 		req.Header.Set("X-Cistern-Access-Key", "invalid_access")
@@ -112,7 +112,7 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		}
 	}
 
-	// 3. Test Create Bucket for Client A
+	
 	payload := `{"bucket_key":"my-test-bucket","owner_id":"` + cliA.ID + `"}`
 	resp := sendReqA("POST", "/api/v1/buckets", bytes.NewBufferString(payload), "application/json")
 	if resp.StatusCode != http.StatusCreated {
@@ -127,13 +127,13 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		t.Errorf("Mismatch in created bucket: %+v", b)
 	}
 
-	// 4. Test Tenant Isolation: Client B tries to GET Client A's bucket
+	
 	resp = sendReqB("GET", "/api/v1/buckets/"+b.BucketKey, nil, "")
 	if resp.StatusCode != http.StatusForbidden {
 		t.Errorf("Expected status 403 (Forbidden) for Client B trying to access Client A's bucket, got %d", resp.StatusCode)
 	}
 
-	// 5. Test GET bucket by key (Client A - Authorized)
+	
 	resp = sendReqA("GET", "/api/v1/buckets/"+b.BucketKey, nil, "")
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
@@ -146,14 +146,14 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		t.Errorf("Mismatch in retrieved bucket ID: expected %s, got %s", b.ID, bGet.ID)
 	}
 
-	// 6. Test Tenant Isolation: Client B tries to UPDATE Client A's bucket
+	
 	updatePayload := `{"bucket_key":"my-updated-bucket","owner_id":"` + cliA.ID + `"}`
 	resp = sendReqB("PUT", "/api/v1/buckets/"+b.BucketKey, bytes.NewBufferString(updatePayload), "application/json")
 	if resp.StatusCode != http.StatusForbidden {
 		t.Errorf("Expected status 403 (Forbidden) on cross-tenant PUT, got %d", resp.StatusCode)
 	}
 
-	// 7. Test UPDATE bucket (Client A - Authorized)
+	
 	resp = sendReqA("PUT", "/api/v1/buckets/"+b.BucketKey, bytes.NewBufferString(updatePayload), "application/json")
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
@@ -167,7 +167,7 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		t.Errorf("Expected key 'my-updated-bucket', got %q", bUpdate.BucketKey)
 	}
 
-	// 8. Test Tenant Isolation: Client B tries to upload object to Client A's bucket
+	
 	bodyBuf := &bytes.Buffer{}
 	mw := multipart.NewWriter(bodyBuf)
 	part, err := mw.CreateFormFile("file", "notes.txt")
@@ -182,7 +182,7 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 	}
 	mw.Close()
 
-	// Capture the raw multipart body to reuse for client A's request
+	
 	multipartBodyBytes := bodyBuf.Bytes()
 
 	resp = sendReqB("POST", "/api/v1/buckets/my-updated-bucket/objects", bytes.NewReader(multipartBodyBytes), mw.FormDataContentType())
@@ -190,7 +190,7 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		t.Errorf("Expected status 403 (Forbidden) on cross-tenant UploadObject, got %d", resp.StatusCode)
 	}
 
-	// 9. Test Upload Object (Client A - Authorized)
+	
 	resp = sendReqA("POST", "/api/v1/buckets/my-updated-bucket/objects", bytes.NewReader(multipartBodyBytes), mw.FormDataContentType())
 	if resp.StatusCode != http.StatusCreated {
 		t.Fatalf("Expected status 201, got %d", resp.StatusCode)
@@ -204,13 +204,13 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		t.Errorf("Mismatch in uploaded object: %+v", obj)
 	}
 
-	// 10. Test Tenant Isolation: Client B tries to view Client A's object metadata
+	
 	resp = sendReqB("GET", "/api/v1/objects/"+obj.ObjectKey+"/metadata", nil, "")
 	if resp.StatusCode != http.StatusForbidden {
 		t.Errorf("Expected status 403 on cross-tenant GET metadata, got %d", resp.StatusCode)
 	}
 
-	// 11. Test Get object metadata (Client A - Authorized)
+	
 	resp = sendReqA("GET", "/api/v1/objects/"+obj.ObjectKey+"/metadata", nil, "")
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
@@ -224,13 +224,13 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		t.Errorf("Mismatch in retrieved object metadata: %+v", objGet)
 	}
 
-	// 12. Test Tenant Isolation: Client B tries to list objects in Client A's bucket
+	
 	resp = sendReqB("GET", "/api/v1/buckets/my-updated-bucket/objects", nil, "")
 	if resp.StatusCode != http.StatusForbidden {
 		t.Errorf("Expected 403 on cross-tenant ListObjects, got %d", resp.StatusCode)
 	}
 
-	// 13. Test List objects in bucket (Client A - Authorized)
+	
 	resp = sendReqA("GET", "/api/v1/buckets/my-updated-bucket/objects", nil, "")
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
@@ -244,13 +244,13 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		t.Errorf("Expected list containing 1 object, got: %+v", list)
 	}
 
-	// 14. Test Tenant Isolation: Client B tries to download Client A's object content
+	
 	resp = sendReqB("GET", "/api/v1/objects/"+obj.ObjectKey, nil, "")
 	if resp.StatusCode != http.StatusForbidden {
 		t.Errorf("Expected 403 on cross-tenant GET object content, got %d", resp.StatusCode)
 	}
 
-	// 15. Test default GET /objects/{key} (inline content disposition, Client A - Authorized)
+	
 	resp = sendReqA("GET", "/api/v1/objects/"+obj.ObjectKey, nil, "")
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
@@ -268,7 +268,7 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		t.Errorf("Expected downloaded content 'Hello, this is my note content.', got %q", string(dlContent))
 	}
 
-	// 16. Test GET /objects/{key}?contentDisposition=attachment (attachment content disposition, Client A - Authorized)
+	
 	resp = sendReqA("GET", "/api/v1/objects/"+obj.ObjectKey+"?contentDisposition=attachment", nil, "")
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
@@ -278,19 +278,19 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		t.Errorf("Expected Content-Disposition to be 'attachment; filename=\"%s\"', got %q", expectedFilename, cdAttachment)
 	}
 
-	// 17. Test Tenant Isolation: Client B tries to DELETE Client A's object
+	
 	resp = sendReqB("DELETE", "/api/v1/objects/"+obj.ObjectKey, nil, "")
 	if resp.StatusCode != http.StatusForbidden {
 		t.Errorf("Expected 403 on cross-tenant DELETE object, got %d", resp.StatusCode)
 	}
 
-	// 18. Test DELETE object (Client A - Authorized)
+	
 	resp = sendReqA("DELETE", "/api/v1/objects/"+obj.ObjectKey, nil, "")
 	if resp.StatusCode != http.StatusNoContent {
 		t.Errorf("Expected status 204, got %d", resp.StatusCode)
 	}
 
-	// Verify delete
+	
 	resp = sendReqA("GET", "/api/v1/objects/"+obj.ObjectKey, nil, "")
 	if resp.StatusCode != http.StatusNotFound {
 		t.Errorf("Expected status 404 for deleted object content, got %d", resp.StatusCode)
@@ -301,7 +301,7 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		t.Errorf("Expected status 404 for deleted object metadata, got %d", resp.StatusCode)
 	}
 
-	// 18b. Test Upload Object with a slash in the key (Client A)
+	
 	bodyBuf2 := &bytes.Buffer{}
 	mw2 := multipart.NewWriter(bodyBuf2)
 	part2, err := mw2.CreateFormFile("file", "image.webp")
@@ -331,7 +331,7 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 
 	escapedKeyPath := url.PathEscape(objEscaped.ObjectKey)
 
-	// 18c. Test GET object metadata using URL-encoded key (Client A)
+	
 	resp = sendReqA("GET", "/api/v1/objects/"+escapedKeyPath+"/metadata", nil, "")
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200 for URL-encoded metadata get, got %d", resp.StatusCode)
@@ -344,7 +344,7 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		t.Errorf("Mismatch in retrieved object metadata for URL-encoded key: expected ID %s, got %s", objEscaped.ID, objGetEscaped.ID)
 	}
 
-	// 18d. Test GET object content using URL-encoded key (Client A)
+	
 	resp = sendReqA("GET", "/api/v1/objects/"+escapedKeyPath, nil, "")
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200 for URL-encoded content get, got %d", resp.StatusCode)
@@ -357,31 +357,31 @@ func TestBucketAndObjectHandlers(t *testing.T) {
 		t.Errorf("Expected downloaded content 'fake webp content', got %q", string(dlContentEscaped))
 	}
 
-	// 18e. Test DELETE object using URL-encoded key (Client A)
+	
 	resp = sendReqA("DELETE", "/api/v1/objects/"+escapedKeyPath, nil, "")
 	if resp.StatusCode != http.StatusNoContent {
 		t.Errorf("Expected status 204 for URL-encoded delete, got %d", resp.StatusCode)
 	}
 
-	// Verify delete of URL-encoded object
+	
 	resp = sendReqA("GET", "/api/v1/objects/"+escapedKeyPath+"/metadata", nil, "")
 	if resp.StatusCode != http.StatusNotFound {
 		t.Errorf("Expected status 404 for deleted URL-encoded object metadata, got %d", resp.StatusCode)
 	}
 
-	// 19. Test Tenant Isolation: Client B tries to DELETE Client A's bucket
+	
 	resp = sendReqB("DELETE", "/api/v1/buckets/my-updated-bucket", nil, "")
 	if resp.StatusCode != http.StatusForbidden {
 		t.Errorf("Expected 403 on cross-tenant DELETE bucket, got %d", resp.StatusCode)
 	}
 
-	// 20. Test DELETE bucket (Client A - Authorized)
+	
 	resp = sendReqA("DELETE", "/api/v1/buckets/my-updated-bucket", nil, "")
 	if resp.StatusCode != http.StatusNoContent {
 		t.Errorf("Expected status 204 on delete, got %d", resp.StatusCode)
 	}
 
-	// Verify delete
+	
 	resp = sendReqA("GET", "/api/v1/buckets/my-updated-bucket", nil, "")
 	if resp.StatusCode != http.StatusNotFound {
 		t.Errorf("Expected status 404 for deleted bucket, got %d", resp.StatusCode)

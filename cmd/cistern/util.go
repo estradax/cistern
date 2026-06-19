@@ -29,6 +29,7 @@ func printUsageAndExit() {
 	fmt.Fprintln(outWriter, "  cistern objects download '<id_or_json>' <dest_path> (e.g., 'some-uuid-here' ./downloaded.txt)")
 	fmt.Fprintln(outWriter, "  cistern objects delete '<id_or_json>'              (e.g., 'some-uuid-here')")
 	fmt.Fprintln(outWriter, "  cistern objects list '<bucket_id_or_json>'         (e.g., 'bucket-uuid-here')")
+	fmt.Fprintln(outWriter, "  cistern objects presign '<json_payload>'           (e.g., '{\"object_key\": \"notes.txt\", \"method\": \"GET\", \"expires_in\": 3600}')")
 	os.Exit(1)
 }
 

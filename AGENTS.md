@@ -136,6 +136,10 @@ go build -o cistern ./cmd/cistern
   ```bash
   ./cistern objects list 'bucket-uuid-here'
   ```
+- **Generate Presigned URL**:
+  ```bash
+  ./cistern objects presign '{"object_key": "my/path.txt", "method": "GET", "expires_in": 3600}'
+  ```
 
 ---
 

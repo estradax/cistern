@@ -42,11 +42,16 @@ func setupTestApp(t *testing.T) *TestEnv {
 		t.Fatalf("Failed to initialize storage driver: %v", err)
 	}
 
+	presignSecret := os.Getenv("PRESIGN_SECRET")
+	if presignSecret == "" {
+		presignSecret = "testing-presign-secret-do-not-use-in-production"
+	}
+
 	clientRepo := client.NewRepository(db)
 	apiKeyRepo := apikey.NewRepository(db)
 	bucketRepo := bucket.NewRepository(db)
 	objRepo := object.NewRepository(db)
-	objService := object.NewService(objRepo, store)
+	objService := object.NewService(objRepo, store, presignSecret)
 
 	server := NewServer(clientRepo, apiKeyRepo, bucketRepo, objService)
 
@@ -62,7 +67,11 @@ func setupTestApp(t *testing.T) *TestEnv {
 	api.Get("/apikeys/:id", server.GetAPIKey)
 	api.Delete("/apikeys/:id", server.DeleteAPIKey)
 
-	// Authenticated routes for buckets and objects
+	
+	api.Get("/presigned/objects/*", server.GetPresignedObjectContent)
+	api.Put("/presigned/objects/*", server.UploadPresignedObjectContent)
+
+	
 	auth := api.Group("", server.AuthMiddleware)
 
 	auth.Post("/buckets", server.CreateBucket)
@@ -73,6 +82,7 @@ func setupTestApp(t *testing.T) *TestEnv {
 	auth.Post("/buckets/:bucket_key/objects", server.UploadObject)
 	auth.Get("/buckets/:bucket_key/objects", server.ListObjects)
 
+	auth.Post("/objects/*/presign", server.GeneratePresignedURL)
 	auth.Get("/objects/*/metadata", server.GetObjectMetadata)
 	auth.Get("/objects/*", server.GetObjectContent)
 	auth.Delete("/objects/*", server.DeleteObject)

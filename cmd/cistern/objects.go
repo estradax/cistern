@@ -23,8 +23,9 @@ func handleObjects(ctx context.Context, db *sqlx.DB, action, payload string, ext
 		return fmt.Errorf("failed to initialize storage driver: %w", err)
 	}
 
+	presignSecret := os.Getenv("PRESIGN_SECRET")
 	repo := object.NewRepository(db)
-	svc := object.NewService(repo, store)
+	svc := object.NewService(repo, store, presignSecret)
 
 	switch action {
 	case "upload":
@@ -136,6 +137,48 @@ func handleObjects(ctx context.Context, db *sqlx.DB, action, payload string, ext
 			return fmt.Errorf("failed to list objects: %w", err)
 		}
 		return printJSON(list)
+
+	case "presign":
+		if presignSecret == "" {
+			return fmt.Errorf("PRESIGN_SECRET environment variable is not set")
+		}
+
+		var input struct {
+			ObjectKey string `json:"object_key"`
+			Method    string `json:"method"`      
+			ExpiresIn int64  `json:"expires_in"`  
+			BucketKey string `json:"bucket_key"`  
+		}
+		if err := json.Unmarshal([]byte(payload), &input); err != nil {
+			return fmt.Errorf("invalid JSON payload for presign: %w", err)
+		}
+
+		if input.ObjectKey == "" {
+			return fmt.Errorf("object_key is required")
+		}
+		if input.Method == "" {
+			input.Method = "GET"
+		}
+		if input.Method != "GET" && input.Method != "PUT" {
+			return fmt.Errorf("invalid method: only GET and PUT are supported")
+		}
+		if input.Method == "PUT" && input.BucketKey == "" {
+			return fmt.Errorf("bucket_key is required for PUT method")
+		}
+
+		baseURL := os.Getenv("BASE_URL")
+		if baseURL == "" {
+			baseURL = "http://localhost:3000"
+		}
+
+		presignedURL, err := svc.GeneratePresignedURL(baseURL, input.Method, input.BucketKey, input.ObjectKey, input.ExpiresIn)
+		if err != nil {
+			return fmt.Errorf("failed to generate presigned URL: %w", err)
+		}
+
+		return printJSON(map[string]string{
+			"url": presignedURL,
+		})
 
 	default:
 		printUsageAndExit()

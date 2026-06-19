@@ -58,11 +58,16 @@ func main() {
 		log.Fatalf("Failed to initialize storage driver: %v", err)
 	}
 
+	presignSecret := os.Getenv("PRESIGN_SECRET")
+	if presignSecret == "" {
+		log.Fatal("PRESIGN_SECRET environment variable is not set")
+	}
+
 	clientRepo := client.NewRepository(db)
 	apiKeyRepo := apikey.NewRepository(db)
 	bucketRepo := bucket.NewRepository(db)
 	objRepo := object.NewRepository(db)
-	objService := object.NewService(objRepo, store)
+	objService := object.NewService(objRepo, store, presignSecret)
 
 	server := NewServer(clientRepo, apiKeyRepo, bucketRepo, objService)
 	app := fiber.New()
@@ -87,6 +92,10 @@ func main() {
 	api.Get("/apikeys/:id", server.GetAPIKey)
 	api.Delete("/apikeys/:id", server.DeleteAPIKey)
 
+	
+	api.Get("/presigned/objects/*", server.GetPresignedObjectContent)
+	api.Put("/presigned/objects/*", server.UploadPresignedObjectContent)
+
 	auth := api.Group("", server.AuthMiddleware)
 
 	auth.Post("/buckets", server.CreateBucket)
@@ -97,6 +106,7 @@ func main() {
 	auth.Post("/buckets/:bucket_key/objects", server.UploadObject)
 	auth.Get("/buckets/:bucket_key/objects", server.ListObjects)
 
+	auth.Post("/objects/*/presign", server.GeneratePresignedURL)
 	auth.Get("/objects/*/metadata", server.GetObjectMetadata)
 	auth.Get("/objects/*", server.GetObjectContent)
 	auth.Delete("/objects/*", server.DeleteObject)

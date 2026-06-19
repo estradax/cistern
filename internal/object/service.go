@@ -5,20 +5,24 @@ import (
 	"crypto/md5"
 	"fmt"
 	"io"
+	"net/url"
+	"time"
 
 	"github.com/estradax/cistern/internal/storage"
 	"github.com/google/uuid"
 )
 
 type Service struct {
-	repo    *Repository
-	storage storage.Driver
+	repo          *Repository
+	storage       storage.Driver
+	presignSecret string
 }
 
-func NewService(repo *Repository, store storage.Driver) *Service {
+func NewService(repo *Repository, store storage.Driver, presignSecret string) *Service {
 	return &Service{
-		repo:    repo,
-		storage: store,
+		repo:          repo,
+		storage:       store,
+		presignSecret: presignSecret,
 	}
 }
 
@@ -146,3 +150,31 @@ func (s *Service) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
+func (s *Service) GeneratePresignedURL(baseURL, method, bucketKey, objectKey string, expiresInSeconds int64) (string, error) {
+	if expiresInSeconds <= 0 {
+		expiresInSeconds = 3600
+	}
+	expires := time.Now().Add(time.Duration(expiresInSeconds) * time.Second).Unix()
+	sig := GenerateSignature(s.presignSecret, method, bucketKey, objectKey, expires)
+
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return "", err
+	}
+
+	u.Path = fmt.Sprintf("/api/v1/presigned/objects/%s", objectKey)
+
+	q := u.Query()
+	if method == "PUT" {
+		q.Set("bucket_key", bucketKey)
+	}
+	q.Set("expires", fmt.Sprintf("%d", expires))
+	q.Set("signature", sig)
+	u.RawQuery = q.Encode()
+
+	return u.String(), nil
+}
+
+func (s *Service) VerifyPresignedURL(method, bucketKey, objectKey string, expires int64, signature string) bool {
+	return VerifySignature(s.presignSecret, method, bucketKey, objectKey, expires, signature)
+}
