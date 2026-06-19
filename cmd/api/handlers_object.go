@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"path/filepath"
 
-	_ "github.com/estradax/cistern/internal/object"
+	"github.com/estradax/cistern/internal/object"
 	"github.com/gofiber/fiber/v3"
 )
 
@@ -275,8 +275,8 @@ func (s *Server) ListObjects(c fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param key path string true "Object Key"
-// @Param input body map[string]interface{} true "Presign parameters"
-// @Success 200 {object} map[string]string
+// @Param body body object.GeneratePresignedURLInput true "Presign parameters"
+// @Success 200 {object} object.GeneratePresignedURLResponse
 // @Failure 400 {object} APIError
 // @Failure 401 {object} APIError
 // @Failure 403 {object} APIError
@@ -293,11 +293,7 @@ func (s *Server) GeneratePresignedURL(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "missing object key"})
 	}
 
-	var input struct {
-		Method    string `json:"method"`      
-		ExpiresIn int64  `json:"expires_in"`  
-		BucketKey string `json:"bucket_key"`  
-	}
+	var input object.GeneratePresignedURLInput
 	if err := c.Bind().JSON(&input); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(APIError{Error: "invalid JSON payload: " + err.Error()})
 	}
@@ -354,8 +350,8 @@ func (s *Server) GeneratePresignedURL(c fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(APIError{Error: "failed to generate presigned URL: " + err.Error()})
 	}
 
-	return c.JSON(fiber.Map{
-		"url": presignedURL,
+	return c.JSON(object.GeneratePresignedURLResponse{
+		URL: presignedURL,
 	})
 }
 

@@ -22,3 +22,14 @@ type CreateObjectInput struct {
 	ETag        string `json:"etag"`
 	StoragePath string `json:"storage_path"`
 }
+
+type GeneratePresignedURLInput struct {
+	Method    string `json:"method"`
+	ExpiresIn int64  `json:"expires_in"`
+	BucketKey string `json:"bucket_key"`
+}
+
+type GeneratePresignedURLResponse struct {
+	URL string `json:"url"`
+}
+

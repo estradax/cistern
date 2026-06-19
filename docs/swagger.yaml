@@ -70,6 +70,20 @@ definitions:
       error:
         type: string
     type: object
+  object.GeneratePresignedURLInput:
+    properties:
+      bucket_key:
+        type: string
+      expires_in:
+        type: integer
+      method:
+        type: string
+    type: object
+  object.GeneratePresignedURLResponse:
+    properties:
+      url:
+        type: string
+    type: object
   object.Object:
     properties:
       bucket_id:
@@ -670,6 +684,147 @@ paths:
       - AccessKey: []
       - SecretKey: []
       summary: Get object metadata
+      tags:
+      - objects
+  /objects/{key}/presign:
+    post:
+      consumes:
+      - application/json
+      description: Generate a presigned URL for downloading or uploading a specific
+        object key.
+      parameters:
+      - description: Object Key
+        in: path
+        name: key
+        required: true
+        type: string
+      - description: Presign parameters
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/object.GeneratePresignedURLInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/object.GeneratePresignedURLResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.APIError'
+      security:
+      - AccessKey: []
+      - SecretKey: []
+      summary: Generate a presigned URL
+      tags:
+      - objects
+  /presigned/objects/{key}:
+    get:
+      description: Retrieve object content without headers by verifying the signature
+        and expiration parameter.
+      parameters:
+      - description: Object Key
+        in: path
+        name: key
+        required: true
+        type: string
+      - description: Expires timestamp
+        in: query
+        name: expires
+        required: true
+        type: integer
+      - description: HMAC Signature
+        in: query
+        name: signature
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.APIError'
+      summary: Download object using presigned URL
+      tags:
+      - objects
+    put:
+      consumes:
+      - application/octet-stream
+      description: Upload object content without headers by verifying the signature
+        and expiration parameter.
+      parameters:
+      - description: Object Key
+        in: path
+        name: key
+        required: true
+        type: string
+      - description: Bucket Key
+        in: query
+        name: bucket_key
+        required: true
+        type: string
+      - description: Expires timestamp
+        in: query
+        name: expires
+        required: true
+        type: integer
+      - description: HMAC Signature
+        in: query
+        name: signature
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/object.Object'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "430":
+          description: ""
+          schema:
+            $ref: '#/definitions/main.APIError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/main.APIError'
+      summary: Upload object using presigned URL
       tags:
       - objects
 schemes:
